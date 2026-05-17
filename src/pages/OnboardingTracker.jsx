@@ -9,25 +9,34 @@ function getOnboardingStatus(c) {
   const ob = c.onboarding || {}
   if (!ob.userCreated) return 'awaitingUserCreation'
   if (!ob.adpSentDate) return 'awaitingADPSend'
+  // Once ADP complete date is set, missing docs no longer block progression
   if (!ob.adpCompleteDate) return 'adpSentPending'
-  const hasMissingDocs = ob.missingDocs && Object.values(ob.missingDocs).some(Boolean)
-  if (hasMissingDocs && !ob.missingDocsEmailSent) return 'missingDocuments'
   if (!ob.podActivatedDate) return 'podPending'
   return 'fullyComplete'
 }
 
-function StepBar({ steps, lang }) {
+function fmtDate(iso) {
+  if (!iso) return null
+  const d = new Date(iso)
+  return d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function fmtDateTime(iso) {
+  if (!iso) return null
+  const d = new Date(iso)
+  return d.toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+function StepBar({ steps }) {
   const colors = ['#9CA3AF', '#F59E0B', '#3B82F6', '#10B981']
   return (
     <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
       {steps.map((done, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
           <div
-            title={t(STEP_LABELS[i], lang)}
+            title={STEP_LABELS[i]}
             style={{
-              width: 28,
-              height: 7,
-              borderRadius: 4,
+              width: 28, height: 7, borderRadius: 4,
               background: done ? colors[i] : '#E5E7EB',
               transition: 'background 0.3s',
             }}
@@ -39,13 +48,19 @@ function StepBar({ steps, lang }) {
   )
 }
 
-function OnboardingRow({ candidate, language }) {
+function OnboardingRow({ candidate, language, role }) {
   const updateCandidate = useStore((s) => s.updateCandidate)
   const addToast = useStore((s) => s.addToast)
   const [expanded, setExpanded] = useState(false)
 
+  // Operations: read-only. Step 1 editable only by Recruitment. Steps 2-4 editable only by Admin.
+  const isOps = role === 'operations'
+  const isRecruitment = role === 'recruitment'
+  const isAdmin = role === 'admin'
+
   const ob = candidate.onboarding || {
     userCreated: false,
+    userCreatedAt: null,
     adpSentDate: '',
     adpCompleteDate: '',
     podActivatedDate: '',
@@ -73,59 +88,79 @@ function OnboardingRow({ candidate, language }) {
     } else {
       newOb = { ...newOb, [path]: value }
     }
+    // Track timestamp when user creation is checked on
+    if (path === 'userCreated' && value === true && !ob.userCreatedAt) {
+      newOb.userCreatedAt = new Date().toISOString()
+    }
     updateCandidate(candidate.id, { onboarding: newOb })
     addToast(t('updatedSuccessfully', language), 'success')
   }
 
-  const checkboxStyle = { width: 14, height: 14, accentColor: '#CF2B1A', cursor: 'pointer' }
-  const dateInpStyle = {
+  const checkboxStyle = (disabled) => ({
+    width: 14, height: 14,
+    accentColor: '#CF2B1A',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.5 : 1,
+  })
+  const dateInpStyle = (disabled) => ({
     padding: '4px 8px',
     fontSize: '0.75rem',
     border: '1px solid #D1D5DB',
     borderRadius: 4,
     fontFamily: 'IBM Plex Mono, monospace',
     width: 130,
-  }
+    opacity: disabled ? 0.5 : 1,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    background: disabled ? '#F9FAFB' : 'white',
+  })
 
   const status = getOnboardingStatus(candidate)
   const isComplete = status === 'fullyComplete'
 
   return (
-    <div
-      style={{
-        background: 'white',
-        borderRadius: 10,
-        border: `1px solid ${isComplete ? '#D1FAE5' : '#E5E7EB'}`,
-        marginBottom: 10,
-        overflow: 'hidden',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-      }}
-    >
+    <div style={{
+      background: 'white',
+      borderRadius: 10,
+      border: `1px solid ${isComplete ? '#D1FAE5' : '#E5E7EB'}`,
+      marginBottom: 10,
+      overflow: 'hidden',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+    }}>
       {/* Summary row */}
       <div
         onClick={() => setExpanded((e) => !e)}
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          padding: '12px 16px',
-          cursor: 'pointer',
-          gap: 16,
-          background: isComplete ? '#F0FDF4' : 'white',
+          display: 'flex', alignItems: 'center', padding: '12px 16px',
+          cursor: 'pointer', gap: 16, background: isComplete ? '#F0FDF4' : 'white',
         }}
       >
-        <div style={{ flex: '0 0 auto', minWidth: 180 }}>
+        <div style={{ flex: '0 0 auto', minWidth: 200 }}>
           <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#111827' }}>
             {candidate.firstName} {candidate.lastName}
-            {candidate.preferredName && <span style={{ color: '#9CA3AF', fontWeight: 400, fontSize: '0.8rem' }}> ({candidate.preferredName})</span>}
+            {candidate.preferredName && (
+              <span style={{ color: '#9CA3AF', fontWeight: 400, fontSize: '0.8rem' }}> ({candidate.preferredName})</span>
+            )}
           </div>
           <div style={{ fontSize: '0.7rem', color: '#6B7280', marginTop: 2 }}>
             <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontWeight: 600, color: '#1E40AF' }}>{candidate.officeCode}</span>
             {' · '}{candidate.manager}
           </div>
+          {/* Hired timestamp */}
+          {candidate.hiredAt && (
+            <div style={{ fontSize: '0.65rem', color: '#9CA3AF', marginTop: 2 }}>
+              {language === 'FR' ? 'Embauché(e)' : 'Hired'}: {fmtDateTime(candidate.hiredAt)}
+            </div>
+          )}
+          {/* User created timestamp */}
+          {ob.userCreatedAt && (
+            <div style={{ fontSize: '0.65rem', color: '#059669', marginTop: 1 }}>
+              {language === 'FR' ? 'Utilisateur créé' : 'User created'}: {fmtDateTime(ob.userCreatedAt)}
+            </div>
+          )}
         </div>
 
         <div style={{ flex: 1 }}>
-          <StepBar steps={steps} lang={language} />
+          <StepBar steps={steps} />
           <div style={{ fontSize: '0.65rem', color: '#6B7280', marginTop: 4 }}>
             {t(STEP_LABELS[0], language)} → {t(STEP_LABELS[1], language)} → {t(STEP_LABELS[2], language)} → {t(STEP_LABELS[3], language)}
           </div>
@@ -136,11 +171,25 @@ function OnboardingRow({ candidate, language }) {
             <span title={t('missingDocs', language)} style={{ fontSize: '1rem' }}>🟡</span>
           )}
           {isHSF && !ob.hsfItRequestSent && (
-            <span title="HSF" style={{ fontSize: '0.7rem', background: '#DBEAFE', color: '#1E40AF', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>HSF</span>
+            <span style={{ fontSize: '0.7rem', background: '#DBEAFE', color: '#1E40AF', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>HSF</span>
           )}
-          <div style={{ fontSize: '0.7rem', fontWeight: 600, padding: '3px 8px', borderRadius: 12, background: isComplete ? '#D1FAE5' : '#FEF3C7', color: isComplete ? '#065F46' : '#92400E' }}>
+          {candidate.isRehire && (
+            <span style={{ fontSize: '0.7rem', background: '#EDE9FE', color: '#5B21B6', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>
+              {language === 'FR' ? 'Réembauche' : 'Rehire'}
+            </span>
+          )}
+          <div style={{
+            fontSize: '0.7rem', fontWeight: 600, padding: '3px 8px', borderRadius: 12,
+            background: isComplete ? '#D1FAE5' : '#FEF3C7',
+            color: isComplete ? '#065F46' : '#92400E',
+          }}>
             {t(status, language)}
           </div>
+          {isOps && (
+            <span style={{ fontSize: '0.65rem', color: '#9CA3AF', fontStyle: 'italic' }}>
+              {language === 'FR' ? 'Lecture seule' : 'Read-only'}
+            </span>
+          )}
           <span style={{ color: '#9CA3AF', fontSize: '0.8rem' }}>{expanded ? '▴' : '▾'}</span>
         </div>
       </div>
@@ -148,19 +197,49 @@ function OnboardingRow({ candidate, language }) {
       {/* Expanded checklist */}
       {expanded && (
         <div style={{ padding: '16px', borderTop: '1px solid #F3F4F6', background: '#FAFAFA' }}>
+          {isOps && (
+            <div style={{
+              marginBottom: 12, padding: '8px 12px', background: '#F3F4F6',
+              borderRadius: 6, fontSize: '0.75rem', color: '#6B7280', border: '1px solid #E5E7EB',
+            }}>
+              {language === 'FR'
+                ? 'Vous êtes en mode lecture seule. Contactez Admin pour mettre à jour l\'intégration.'
+                : 'You are in read-only mode. Contact Admin to update onboarding steps.'}
+            </div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
 
-            {/* Step 1: User Created */}
-            <div style={{ background: 'white', borderRadius: 8, padding: '14px', border: `1px solid ${ob.userCreated ? '#D1FAE5' : '#E5E7EB'}` }}>
-              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+            {/* Step 1: User Created — Recruitment only */}
+            <div style={{
+              background: 'white', borderRadius: 8, padding: '14px',
+              border: `1px solid ${ob.userCreated ? '#D1FAE5' : '#E5E7EB'}`,
+              opacity: isAdmin ? 0.7 : 1,
+            }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
                 1. {t('step1', language)}
               </div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginBottom: 8 }}>
-                <input type="checkbox" checked={ob.userCreated || false} onChange={(e) => update('userCreated', e.target.checked)} style={checkboxStyle} />
+              {isAdmin && (
+                <div style={{ fontSize: '0.65rem', color: '#9CA3AF', marginBottom: 8, fontStyle: 'italic' }}>
+                  {language === 'FR' ? 'Géré par le recrutement' : 'Managed by Recruitment'}
+                </div>
+              )}
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: (isOps || isAdmin) ? 'not-allowed' : 'pointer', marginBottom: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={ob.userCreated || false}
+                  disabled={isOps || isAdmin}
+                  onChange={(e) => update('userCreated', e.target.checked)}
+                  style={checkboxStyle(isOps || isAdmin)}
+                />
                 <span style={{ fontSize: '0.8rem', fontWeight: ob.userCreated ? 600 : 400, color: ob.userCreated ? '#065F46' : '#374151' }}>
                   {t('userCreated', language)}
                 </span>
               </label>
+              {ob.userCreatedAt && (
+                <div style={{ fontSize: '0.65rem', color: '#059669', marginBottom: 8 }}>
+                  ✓ {fmtDateTime(ob.userCreatedAt)}
+                </div>
+              )}
               {ob.userCreated && candidate.username && (
                 <div style={{ marginTop: 8, padding: '8px 10px', background: '#F9FAFB', borderRadius: 6, fontSize: '0.75rem' }}>
                   <div style={{ color: '#6B7280', marginBottom: 4 }}>{t('username', language)}:</div>
@@ -174,19 +253,29 @@ function OnboardingRow({ candidate, language }) {
                 <input
                   type="text"
                   value={candidate.payrollId || ''}
+                  disabled={isOps || isAdmin}
                   onChange={(e) => updateCandidate(candidate.id, { payrollId: e.target.value })}
-                  onBlur={() => addToast(t('updatedSuccessfully', language), 'success')}
+                  onBlur={() => !isOps && !isAdmin && addToast(t('updatedSuccessfully', language), 'success')}
                   placeholder={language === 'FR' ? 'Entrer ID...' : 'Enter ID...'}
-                  style={{ ...dateInpStyle, width: '100%' }}
+                  style={{ ...dateInpStyle(isOps || isAdmin), width: '100%' }}
                 />
               </div>
             </div>
 
-            {/* Step 2: ADP Onboarding Sent */}
-            <div style={{ background: 'white', borderRadius: 8, padding: '14px', border: `1px solid ${ob.adpSentDate ? '#DBEAFE' : '#E5E7EB'}` }}>
-              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+            {/* Step 2: ADP Onboarding Sent — Admin only */}
+            <div style={{
+              background: 'white', borderRadius: 8, padding: '14px',
+              border: `1px solid ${ob.adpSentDate ? '#DBEAFE' : '#E5E7EB'}`,
+              opacity: isRecruitment ? 0.7 : 1,
+            }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
                 2. {t('step2', language)}
               </div>
+              {isRecruitment && (
+                <div style={{ fontSize: '0.65rem', color: '#9CA3AF', marginBottom: 8, fontStyle: 'italic' }}>
+                  {language === 'FR' ? 'Géré par Admin' : 'Managed by Admin'}
+                </div>
+              )}
               {!candidate.payrollId && (
                 <div style={{ fontSize: '0.72rem', color: '#92400E', background: '#FEF3C7', padding: '6px 8px', borderRadius: 4, marginBottom: 8, border: '1px solid #F59E0B' }}>
                   ⚠ {t('payrollRequired', language)}
@@ -197,20 +286,21 @@ function OnboardingRow({ candidate, language }) {
                 <input
                   type="date"
                   value={ob.adpSentDate || ''}
-                  disabled={!candidate.payrollId}
+                  disabled={!candidate.payrollId || isOps || isRecruitment}
                   onChange={(e) => update('adpSentDate', e.target.value)}
-                  style={{ ...dateInpStyle, opacity: candidate.payrollId ? 1 : 0.5, cursor: candidate.payrollId ? 'pointer' : 'not-allowed' }}
+                  style={dateInpStyle(!candidate.payrollId || isOps || isRecruitment)}
                 />
               </div>
               <div style={{ marginBottom: 8 }}>
                 <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#374151', marginBottom: 6 }}>{t('missingDocs', language)}:</div>
                 {['directDeposit', 'sin', 'govId', 'contract', 'workPermit'].map((doc) => (
-                  <label key={doc} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, cursor: 'pointer' }}>
+                  <label key={doc} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, cursor: (isOps || isRecruitment) ? 'not-allowed' : 'pointer' }}>
                     <input
                       type="checkbox"
                       checked={ob.missingDocs?.[doc] || false}
+                      disabled={isOps || isRecruitment}
                       onChange={(e) => update(`missingDocs.${doc}`, e.target.checked)}
-                      style={{ ...checkboxStyle, accentColor: '#F59E0B' }}
+                      style={{ ...checkboxStyle(isOps || isRecruitment), accentColor: '#F59E0B' }}
                     />
                     <span style={{ fontSize: '0.78rem', color: ob.missingDocs?.[doc] ? '#92400E' : '#6B7280' }}>
                       {t(doc, language)}
@@ -218,49 +308,67 @@ function OnboardingRow({ candidate, language }) {
                   </label>
                 ))}
               </div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', marginTop: 6 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: (isOps || isRecruitment) ? 'not-allowed' : 'pointer', marginTop: 6 }}>
                 <input
                   type="checkbox"
                   checked={ob.missingDocsEmailSent || false}
+                  disabled={isOps || isRecruitment}
                   onChange={(e) => update('missingDocsEmailSent', e.target.checked)}
-                  style={checkboxStyle}
+                  style={checkboxStyle(isOps || isRecruitment)}
                 />
                 <span style={{ fontSize: '0.78rem', color: '#374151' }}>{t('missingDocsEmailSent', language)}</span>
               </label>
             </div>
 
-            {/* Step 3: ADP Complete */}
-            <div style={{ background: 'white', borderRadius: 8, padding: '14px', border: `1px solid ${ob.adpCompleteDate ? '#D1FAE5' : '#E5E7EB'}` }}>
-              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+            {/* Step 3: ADP Complete — Admin only */}
+            <div style={{
+              background: 'white', borderRadius: 8, padding: '14px',
+              border: `1px solid ${ob.adpCompleteDate ? '#D1FAE5' : '#E5E7EB'}`,
+              opacity: isRecruitment ? 0.7 : 1,
+            }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
                 3. {t('step3', language)}
               </div>
+              {isRecruitment && (
+                <div style={{ fontSize: '0.65rem', color: '#9CA3AF', marginBottom: 8, fontStyle: 'italic' }}>
+                  {language === 'FR' ? 'Géré par Admin' : 'Managed by Admin'}
+                </div>
+              )}
+              {hasMissingDocs && ob.adpCompleteDate && (
+                <div style={{ fontSize: '0.7rem', color: '#92400E', background: '#FEF3C7', padding: '5px 8px', borderRadius: 4, marginBottom: 8 }}>
+                  🟡 {language === 'FR' ? 'Documents manquants — conservés pour les rapports' : 'Missing docs noted — retained for reporting'}
+                </div>
+              )}
               <div style={{ marginBottom: 12 }}>
                 <label style={{ fontSize: '0.7rem', color: '#6B7280', display: 'block', marginBottom: 4 }}>{t('adpCompleteDate', language)}:</label>
                 <input
                   type="date"
                   value={ob.adpCompleteDate || ''}
+                  disabled={isOps || isRecruitment}
                   onChange={(e) => update('adpCompleteDate', e.target.value)}
-                  style={dateInpStyle}
+                  style={dateInpStyle(isOps || isRecruitment)}
                 />
               </div>
               {isHSF && (
                 <div style={{ marginTop: 8 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', marginBottom: 6 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: (isOps || isRecruitment) ? 'not-allowed' : 'pointer', marginBottom: 6 }}>
                     <input
                       type="checkbox"
                       checked={ob.hsfAccountNeeded || false}
+                      disabled={isOps || isRecruitment}
                       onChange={(e) => update('hsfAccountNeeded', e.target.checked)}
-                      style={checkboxStyle}
+                      style={checkboxStyle(isOps || isRecruitment)}
                     />
                     <span style={{ fontSize: '0.78rem', color: '#374151', fontWeight: 500 }}>{t('hsfAccountNeeded', language)}</span>
                   </label>
                   {ob.hsfAccountNeeded && (
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', marginLeft: 20 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: (isOps || isRecruitment) ? 'not-allowed' : 'pointer', marginLeft: 20 }}>
                       <input
                         type="checkbox"
                         checked={ob.hsfItRequestSent || false}
+                        disabled={isOps || isRecruitment}
                         onChange={(e) => update('hsfItRequestSent', e.target.checked)}
-                        style={checkboxStyle}
+                        style={checkboxStyle(isOps || isRecruitment)}
                       />
                       <span style={{ fontSize: '0.78rem', color: '#374151' }}>{t('hsfItRequestSent', language)}</span>
                     </label>
@@ -269,18 +377,28 @@ function OnboardingRow({ candidate, language }) {
               )}
             </div>
 
-            {/* Step 4: POD Activated */}
-            <div style={{ background: 'white', borderRadius: 8, padding: '14px', border: `1px solid ${ob.podActivatedDate ? '#D1FAE5' : '#E5E7EB'}` }}>
-              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+            {/* Step 4: POD Activated — Admin only */}
+            <div style={{
+              background: 'white', borderRadius: 8, padding: '14px',
+              border: `1px solid ${ob.podActivatedDate ? '#D1FAE5' : '#E5E7EB'}`,
+              opacity: isRecruitment ? 0.7 : 1,
+            }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
                 4. {t('step4', language)}
               </div>
+              {isRecruitment && (
+                <div style={{ fontSize: '0.65rem', color: '#9CA3AF', marginBottom: 8, fontStyle: 'italic' }}>
+                  {language === 'FR' ? 'Géré par Admin' : 'Managed by Admin'}
+                </div>
+              )}
               <div>
                 <label style={{ fontSize: '0.7rem', color: '#6B7280', display: 'block', marginBottom: 4 }}>{t('podActivatedDate', language)}:</label>
                 <input
                   type="date"
                   value={ob.podActivatedDate || ''}
+                  disabled={isOps || isRecruitment}
                   onChange={(e) => update('podActivatedDate', e.target.value)}
-                  style={dateInpStyle}
+                  style={dateInpStyle(isOps || isRecruitment)}
                 />
               </div>
               {ob.podActivatedDate && ob.adpCompleteDate && ob.adpSentDate && ob.userCreated && (
@@ -300,6 +418,7 @@ const FILTER_OPTIONS = ['all', 'awaitingUserCreation', 'awaitingADPSend', 'adpSe
 
 export default function OnboardingTracker() {
   const language = useStore((s) => s.language)
+  const role = useStore((s) => s.role)
   const candidates = useStore((s) => s.candidates)
   const [filter, setFilter] = useState('all')
   const [filterRegion, setFilterRegion] = useState('all')
@@ -309,8 +428,13 @@ export default function OnboardingTracker() {
   const hired = candidates.filter((c) => c.status === 'Hired')
 
   const filtered = hired.filter((c) => {
-    const status = getOnboardingStatus(c)
-    if (filter !== 'all' && status !== filter) return false
+    const obStatus = getOnboardingStatus(c)
+    if (filter === 'missingDocuments') {
+      const md = c.onboarding?.missingDocs || {}
+      if (!Object.values(md).some(Boolean)) return false
+    } else if (filter !== 'all' && obStatus !== filter) {
+      return false
+    }
     if (filterRegion !== 'all' && c.region !== filterRegion) return false
     if (filterOffice && c.officeCode !== filterOffice) return false
     if (search) {
@@ -320,21 +444,23 @@ export default function OnboardingTracker() {
     return true
   })
 
-  const counts = FILTER_OPTIONS.reduce((acc, f) => {
-    acc[f] = f === 'all' ? hired.length : hired.filter((c) => getOnboardingStatus(c) === f).length
-    return acc
-  }, {})
+  const counts = {
+    all: hired.length,
+    awaitingUserCreation: hired.filter((c) => getOnboardingStatus(c) === 'awaitingUserCreation').length,
+    awaitingADPSend: hired.filter((c) => getOnboardingStatus(c) === 'awaitingADPSend').length,
+    adpSentPending: hired.filter((c) => getOnboardingStatus(c) === 'adpSentPending').length,
+    missingDocuments: hired.filter((c) => { const md = c.onboarding?.missingDocs || {}; return Object.values(md).some(Boolean) }).length,
+    podPending: hired.filter((c) => getOnboardingStatus(c) === 'podPending').length,
+    fullyComplete: hired.filter((c) => getOnboardingStatus(c) === 'fullyComplete').length,
+  }
 
   const filterBtnStyle = (active) => ({
-    padding: '5px 12px',
-    fontSize: '0.75rem',
-    fontWeight: active ? 600 : 400,
-    borderRadius: 6,
+    padding: '5px 12px', fontSize: '0.75rem',
+    fontWeight: active ? 600 : 400, borderRadius: 6,
     border: active ? '1.5px solid #CF2B1A' : '1px solid #E5E7EB',
     background: active ? '#FFF5F5' : 'white',
     color: active ? '#CF2B1A' : '#374151',
-    cursor: 'pointer',
-    whiteSpace: 'nowrap',
+    cursor: 'pointer', whiteSpace: 'nowrap',
   })
 
   return (
@@ -348,7 +474,7 @@ export default function OnboardingTracker() {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Status filters */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
         {FILTER_OPTIONS.map((f) => (
           <button key={f} onClick={() => setFilter(f)} style={filterBtnStyle(filter === f)}>
@@ -378,13 +504,13 @@ export default function OnboardingTracker() {
         </select>
       </div>
 
-      {/* Legend */}
+      {/* Step legend */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
         {[
-          { color: '#9CA3AF', label: t('step1', language) },
-          { color: '#F59E0B', label: t('step2', language) },
-          { color: '#3B82F6', label: t('step3', language) },
-          { color: '#10B981', label: t('step4', language) },
+          { color: '#9CA3AF', label: t('step1', language) + ' (Recruitment)' },
+          { color: '#F59E0B', label: t('step2', language) + ' (Admin)' },
+          { color: '#3B82F6', label: t('step3', language) + ' (Admin)' },
+          { color: '#10B981', label: t('step4', language) + ' (Admin)' },
         ].map(({ color, label }) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.7rem', color: '#6B7280' }}>
             <div style={{ width: 12, height: 6, borderRadius: 3, background: color }} />
@@ -396,11 +522,11 @@ export default function OnboardingTracker() {
       {/* Rows */}
       {filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '48px 24px', color: '#9CA3AF', fontSize: '0.875rem', background: 'white', borderRadius: 10, border: '1px solid #E5E7EB' }}>
-          {hired.length === 0 ? t('emptyOnboarding', language) : t('noResults', language)}
+          {hired.length === 0 ? t('emptyOnboarding', language) : (language === 'FR' ? 'Aucun résultat' : 'No results match your filters')}
         </div>
       ) : (
         filtered.map((c) => (
-          <OnboardingRow key={c.id} candidate={c} language={language} />
+          <OnboardingRow key={c.id} candidate={c} language={language} role={role} />
         ))
       )}
     </div>

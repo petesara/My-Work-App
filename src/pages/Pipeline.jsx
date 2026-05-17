@@ -31,11 +31,11 @@ export default function Pipeline() {
   const editingCandidateId = useStore((s) => s.editingCandidateId)
 
   const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState('all') // 'all' | 'new' | 'rehire'
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterRegion, setFilterRegion] = useState('all')
   const [filterLang, setFilterLang] = useState('all')
-  const [filterRehire, setFilterRehire] = useState(false)
   const [filterOffice, setFilterOffice] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -52,7 +52,12 @@ export default function Pipeline() {
 
   const canAdd = role === 'recruitment' || role === 'operations'
 
+  const newCount = candidates.filter((c) => !c.isRehire).length
+  const rehireCount = candidates.filter((c) => c.isRehire).length
+
   const filtered = candidates.filter((c) => {
+    if (tab === 'new' && c.isRehire) return false
+    if (tab === 'rehire' && !c.isRehire) return false
     if (search) {
       const q = search.toLowerCase()
       const name = `${c.firstName} ${c.lastName}`.toLowerCase()
@@ -63,7 +68,6 @@ export default function Pipeline() {
     if (filterStatus !== 'all' && c.status !== filterStatus) return false
     if (filterRegion !== 'all' && c.region !== filterRegion) return false
     if (filterLang !== 'all' && c.languagePreference !== filterLang) return false
-    if (filterRehire && !c.isRehire) return false
     if (filterOffice && c.officeCode !== filterOffice) return false
     if (dateFrom && c.interviewDate && c.interviewDate < dateFrom) return false
     if (dateTo && c.interviewDate && c.interviewDate > dateTo) return false
@@ -98,6 +102,31 @@ export default function Pipeline() {
         )}
       </div>
 
+      {/* New / Rehire tabs */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: 16, borderBottom: '2px solid #E5E7EB' }}>
+        {[
+          { key: 'all', label: language === 'FR' ? 'Tous' : 'All', count: candidates.length },
+          { key: 'new', label: language === 'FR' ? 'Nouvelles embauches' : 'New Hires', count: newCount },
+          { key: 'rehire', label: language === 'FR' ? 'Réembauches' : 'Rehires', count: rehireCount },
+        ].map(({ key, label, count }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            style={{
+              padding: '8px 18px', fontSize: '0.825rem', fontWeight: tab === key ? 700 : 400,
+              background: 'none', border: 'none', borderBottom: tab === key ? '2px solid #CF2B1A' : '2px solid transparent',
+              color: tab === key ? '#CF2B1A' : '#6B7280', cursor: 'pointer', marginBottom: -2,
+              transition: 'all 0.15s',
+            }}
+          >
+            {label}
+            <span style={{ marginLeft: 6, fontSize: '0.7rem', background: tab === key ? '#FFF5F5' : '#F3F4F6', color: tab === key ? '#CF2B1A' : '#9CA3AF', borderRadius: 10, padding: '1px 6px', fontWeight: 600 }}>
+              {count}
+            </span>
+          </button>
+        ))}
+      </div>
+
       {/* Filters */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <input
@@ -120,14 +149,11 @@ export default function Pipeline() {
           <option value="EN">EN</option>
           <option value="FR">FR</option>
         </select>
-        <button onClick={() => setFilterRehire((r) => !r)} style={btnStyle(filterRehire)}>
-          {t('rehireOnly', language)}
-        </button>
         <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #E5E7EB', fontSize: '0.75rem' }} />
         <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>→</span>
         <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #E5E7EB', fontSize: '0.75rem' }} />
-        {(search || filterStatus !== 'all' || filterRegion !== 'all' || filterLang !== 'all' || filterRehire || filterOffice || dateFrom || dateTo) && (
-          <button onClick={() => { setSearch(''); setFilterStatus('all'); setFilterRegion('all'); setFilterLang('all'); setFilterRehire(false); setFilterOffice(''); setDateFrom(''); setDateTo('') }}
+        {(search || filterStatus !== 'all' || filterRegion !== 'all' || filterLang !== 'all' || filterOffice || dateFrom || dateTo) && (
+          <button onClick={() => { setSearch(''); setFilterStatus('all'); setFilterRegion('all'); setFilterLang('all'); setFilterOffice(''); setDateFrom(''); setDateTo('') }}
             style={{ padding: '5px 10px', fontSize: '0.75rem', borderRadius: 6, border: '1px solid #E5E7EB', background: 'white', color: '#6B7280', cursor: 'pointer' }}>
             ✕ Clear
           </button>

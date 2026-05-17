@@ -31,9 +31,14 @@ const useStore = create(
 
       updateCandidate: (id, updates) =>
         set((state) => ({
-          candidates: state.candidates.map((c) =>
-            c.id === id ? { ...c, ...updates } : c
-          ),
+          candidates: state.candidates.map((c) => {
+            if (c.id !== id) return c
+            const merged = { ...c, ...updates }
+            if (updates.status === 'Hired' && !c.hiredAt) {
+              merged.hiredAt = new Date().toISOString()
+            }
+            return merged
+          }),
         })),
 
       deleteCandidate: (id) =>

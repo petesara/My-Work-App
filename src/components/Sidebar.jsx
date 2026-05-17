@@ -11,7 +11,6 @@ const NAV_ITEMS = {
   admin: [
     { to: '/onboarding', key: 'onboarding', icon: '✦' },
     { to: '/managers', key: 'managerDirectory', icon: '◉' },
-    { to: '/do-not-hire', key: 'doNotHire', icon: '⊘' },
     { to: '/reports', key: 'reports', icon: '▣' },
   ],
   operations: [
