@@ -6,6 +6,7 @@ import OnboardingTracker from './pages/OnboardingTracker'
 import ManagerDirectory from './pages/ManagerDirectory'
 import Reports from './pages/Reports'
 import DoNotHire from './pages/DoNotHire'
+import UserProfiles from './pages/UserProfiles'
 import Layout from './components/Layout'
 
 function ProtectedRoute({ children }) {
@@ -55,6 +56,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <DoNotHire />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/user-profiles"
+        element={
+          <ProtectedRoute>
+            <UserProfiles />
           </ProtectedRoute>
         }
       />

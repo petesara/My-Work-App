@@ -204,8 +204,14 @@ export default function Pipeline() {
                   onMouseLeave={(e) => (e.currentTarget.style.background = idx % 2 === 0 ? 'white' : '#FAFAFA')}
                 >
                   <td style={{ ...COL_STYLE, fontWeight: 500, color: '#111827' }}>
-                    {c.firstName} {c.lastName}
-                    {c.preferredName && <span style={{ color: '#9CA3AF', fontWeight: 400 }}> ({c.preferredName})</span>}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <span>{c.firstName} {c.lastName}{c.preferredName && <span style={{ color: '#9CA3AF', fontWeight: 400 }}> ({c.preferredName})</span>}</span>
+                      {c.status === 'Hired' && !c.username && (
+                        <span title={language === 'FR' ? 'Profil utilisateur manquant' : 'User profile missing'} style={{ fontSize: '0.6rem', background: '#FEE2E2', color: '#CF2B1A', borderRadius: 6, padding: '1px 6px', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                          {language === 'FR' ? '⚠ No Profile' : '⚠ No Profile'}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td style={{ ...COL_STYLE, fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.75rem', color: '#374151' }}>{c.phone}</td>
                   <td style={{ ...COL_STYLE, color: '#374151', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.email}</td>

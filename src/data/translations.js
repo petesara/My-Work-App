@@ -9,6 +9,7 @@ export const translations = {
     managerDirectory: 'Manager Directory',
     reports: 'Reports',
     doNotHire: 'Do Not Hire',
+    userProfiles: 'User Profiles',
     settings: 'Settings',
 
     // Statuses
@@ -162,6 +163,7 @@ export const translations = {
     managerDirectory: 'Répertoire des gestionnaires',
     reports: 'Rapports',
     doNotHire: 'Ne pas embaucher',
+    userProfiles: 'Profils utilisateurs',
     settings: 'Paramètres',
 
     // Statuses

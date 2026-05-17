@@ -425,7 +425,10 @@ export default function OnboardingTracker() {
   const [filterOffice, setFilterOffice] = useState('')
   const [search, setSearch] = useState('')
 
-  const hired = candidates.filter((c) => c.status === 'Hired')
+  // Only show in onboarding after user profile has been created
+  const allHired = candidates.filter((c) => c.status === 'Hired')
+  const awaitingProfile = allHired.filter((c) => !c.username)
+  const hired = allHired.filter((c) => !!c.username)
 
   const filtered = hired.filter((c) => {
     const obStatus = getOnboardingStatus(c)
@@ -518,6 +521,19 @@ export default function OnboardingTracker() {
           </div>
         ))}
       </div>
+
+      {/* Awaiting user profile banner */}
+      {awaitingProfile.length > 0 && (
+        <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 8, padding: '10px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: '1rem' }}>⏳</span>
+          <div style={{ fontSize: '0.8rem', color: '#92400E' }}>
+            <strong>{awaitingProfile.length}</strong>{' '}
+            {language === 'FR'
+              ? `embauché(e)${awaitingProfile.length > 1 ? 's' : ''} en attente de profil utilisateur — visible ici après création dans « Profils utilisateurs »`
+              : `hired candidate${awaitingProfile.length > 1 ? 's' : ''} awaiting user profile — will appear here after profile created in "User Profiles"`}
+          </div>
+        </div>
+      )}
 
       {/* Rows */}
       {filtered.length === 0 ? (

@@ -5,6 +5,7 @@ import { t } from '../data/translations'
 const NAV_ITEMS = {
   recruitment: [
     { to: '/pipeline', key: 'pipeline', icon: '◈', shortcut: 'N' },
+    { to: '/user-profiles', key: 'userProfiles', icon: '◎' },
     { to: '/do-not-hire', key: 'doNotHire', icon: '⊘' },
     { to: '/reports', key: 'reports', icon: '▣' },
   ],
