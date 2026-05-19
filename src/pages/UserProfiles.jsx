@@ -150,15 +150,45 @@ function ProfileCard({ candidate, language }) {
 }
 
 function CreatedCard({ candidate, language }) {
+  const updateCandidate = useStore((s) => s.updateCandidate)
+  const addToast = useStore((s) => s.addToast)
   const [expanded, setExpanded] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [username, setUsername] = useState(candidate.username || '')
+  const [payrollId, setPayrollId] = useState(candidate.payrollId || '')
+  const [password, setPassword] = useState(candidate.password || generatePassword(candidate.phone))
   const FR = language === 'FR'
+
+  // Keep local state in sync if candidate updates externally
+  const handleEdit = () => {
+    setUsername(candidate.username || '')
+    setPayrollId(candidate.payrollId || '')
+    setPassword(candidate.password || generatePassword(candidate.phone))
+    setEditing(true)
+  }
+
+  const handleSave = () => {
+    updateCandidate(candidate.id, {
+      username: username.trim().toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12),
+      payrollId: payrollId.trim(),
+      password: password.trim() || generatePassword(candidate.phone),
+    })
+    addToast(FR ? 'Profil mis à jour' : 'Profile updated', 'success')
+    setEditing(false)
+  }
+
+  const inp = {
+    padding: '5px 8px', border: '1px solid #D1D5DB', borderRadius: 5,
+    fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box',
+  }
+
   const ob = candidate.onboarding || {}
 
   return (
     <div style={{ background: 'white', borderRadius: 10, border: '1px solid #D1FAE5', marginBottom: 8, overflow: 'hidden' }}>
       <div
-        onClick={() => setExpanded((e) => !e)}
-        style={{ padding: '10px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, background: '#F0FDF4' }}
+        onClick={() => !editing && setExpanded((e) => !e)}
+        style={{ padding: '10px 14px', cursor: editing ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 12, background: '#F0FDF4' }}
       >
         <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: '#059669', flexShrink: 0 }}>
           ✓
@@ -172,24 +202,97 @@ function CreatedCard({ candidate, language }) {
             {' · '}
             <span style={{ fontFamily: 'IBM Plex Mono, monospace', color: '#CF2B1A', letterSpacing: '0.1em' }}>{candidate.password}</span>
             {' · '}
-            {FR ? 'ID paie' : 'Payroll'}: <strong>{candidate.payrollId || '—'}</strong>
+            {FR ? 'ID paie' : 'Payroll'}: <strong style={{ fontFamily: 'IBM Plex Mono, monospace' }}>{candidate.payrollId || '—'}</strong>
           </div>
         </div>
-        <div style={{ flexShrink: 0, display: 'flex', gap: 6 }}>
+        <div style={{ flexShrink: 0, display: 'flex', gap: 6, alignItems: 'center' }}>
           <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.7rem', color: '#1E40AF', background: '#DBEAFE', padding: '2px 7px', borderRadius: 8, fontWeight: 600 }}>
             {candidate.officeCode || '—'}
           </span>
+          <button
+            onClick={(e) => { e.stopPropagation(); handleEdit(); setExpanded(true) }}
+            style={{ fontSize: '0.7rem', padding: '3px 9px', border: '1px solid #D1D5DB', borderRadius: 6, background: 'white', color: '#374151', cursor: 'pointer', fontWeight: 500 }}
+          >
+            {FR ? 'Modifier' : 'Edit'}
+          </button>
           <span style={{ color: '#9CA3AF', fontSize: '0.75rem' }}>{expanded ? '▴' : '▾'}</span>
         </div>
       </div>
+
       {expanded && (
-        <div style={{ padding: '12px 16px', borderTop: '1px solid #D1FAE5', display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: '0.78rem' }}>
-          <div><span style={{ color: '#9CA3AF' }}>{t('username', language)}: </span><strong style={{ fontFamily: 'IBM Plex Mono, monospace' }}>{candidate.username}</strong></div>
-          <div><span style={{ color: '#9CA3AF' }}>{t('password', language)}: </span><strong style={{ fontFamily: 'IBM Plex Mono, monospace', color: '#CF2B1A', letterSpacing: '0.15em' }}>{candidate.password}</strong></div>
-          <div><span style={{ color: '#9CA3AF' }}>{t('payrollId', language)}: </span><strong style={{ fontFamily: 'IBM Plex Mono, monospace' }}>{candidate.payrollId || '—'}</strong></div>
-          <div><span style={{ color: '#9CA3AF' }}>{t('officeCode', language)}: </span><strong>{candidate.officeCode || '—'}</strong></div>
-          <div><span style={{ color: '#9CA3AF' }}>{t('manager', language)}: </span><strong>{candidate.manager || '—'}</strong></div>
-          {ob.userCreatedAt && <div><span style={{ color: '#9CA3AF' }}>{FR ? 'Créé' : 'Created'}: </span><strong>{new Date(ob.userCreatedAt).toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong></div>}
+        <div style={{ padding: '14px 16px', borderTop: '1px solid #D1FAE5' }}>
+          {editing ? (
+            <div>
+              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>
+                {FR ? 'Modifier le profil' : 'Edit Profile'}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                    {t('username', language)}
+                  </label>
+                  <input
+                    style={{ ...inp, fontFamily: 'IBM Plex Mono, monospace', width: '100%' }}
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12))}
+                  />
+                  <div style={{ fontSize: '0.6rem', color: '#9CA3AF', marginTop: 2 }}>Max 12 chars</div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                    {t('password', language)}
+                  </label>
+                  <input
+                    style={{ ...inp, fontFamily: 'IBM Plex Mono, monospace', letterSpacing: '0.15em', width: '100%' }}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder={generatePassword(candidate.phone)}
+                  />
+                  <div style={{ fontSize: '0.6rem', color: '#9CA3AF', marginTop: 2 }}>
+                    {FR ? 'Auto: ' : 'Auto: '}{generatePassword(candidate.phone)}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                    {t('payrollId', language)}
+                  </label>
+                  <input
+                    style={{ ...inp, fontFamily: 'IBM Plex Mono, monospace', width: '100%' }}
+                    value={payrollId}
+                    onChange={(e) => setPayrollId(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={handleSave}
+                  style={{ padding: '6px 16px', background: '#CF2B1A', color: 'white', border: 'none', borderRadius: 6, fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  {FR ? 'Enregistrer' : 'Save'}
+                </button>
+                <button
+                  onClick={() => setEditing(false)}
+                  style={{ padding: '6px 14px', background: 'white', color: '#374151', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: '0.78rem', cursor: 'pointer' }}
+                >
+                  {FR ? 'Annuler' : 'Cancel'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: '0.78rem' }}>
+              <div><span style={{ color: '#9CA3AF' }}>{t('username', language)}: </span><strong style={{ fontFamily: 'IBM Plex Mono, monospace' }}>{candidate.username}</strong></div>
+              <div><span style={{ color: '#9CA3AF' }}>{t('password', language)}: </span><strong style={{ fontFamily: 'IBM Plex Mono, monospace', color: '#CF2B1A', letterSpacing: '0.15em' }}>{candidate.password}</strong></div>
+              <div><span style={{ color: '#9CA3AF' }}>{t('payrollId', language)}: </span><strong style={{ fontFamily: 'IBM Plex Mono, monospace' }}>{candidate.payrollId || '—'}</strong></div>
+              <div><span style={{ color: '#9CA3AF' }}>{t('officeCode', language)}: </span><strong>{candidate.officeCode || '—'}</strong></div>
+              <div><span style={{ color: '#9CA3AF' }}>{t('manager', language)}: </span><strong>{candidate.manager || '—'}</strong></div>
+              {ob.userCreatedAt && (
+                <div>
+                  <span style={{ color: '#9CA3AF' }}>{FR ? 'Créé' : 'Created'}: </span>
+                  <strong>{new Date(ob.userCreatedAt).toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
