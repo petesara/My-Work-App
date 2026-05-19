@@ -12,12 +12,14 @@ const useStore = create(
       candidates: [],
       doNotHireList: [],
       managers: OFFICES.map(o => ({ ...o })),
+      assignedOffices: [],
       toasts: [],
       openAddPanel: false,
       editingCandidateId: null,
 
       setRole: (role) => set({ role }),
       setLanguage: (language) => set({ language }),
+      setAssignedOffices: (codes) => set({ assignedOffices: codes }),
       setOpenAddPanel: (open, candidateId = null) =>
         set({ openAddPanel: open, editingCandidateId: candidateId }),
 
@@ -84,6 +86,7 @@ const useStore = create(
         candidates: state.candidates,
         doNotHireList: state.doNotHireList,
         managers: state.managers,
+        assignedOffices: state.assignedOffices,
       }),
     }
   )
