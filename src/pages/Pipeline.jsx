@@ -263,6 +263,11 @@ export default function Pipeline() {
         </table>
       </div>
 
+      {/* Import Modal */}
+      {showImport && (
+        <ImportModal onClose={() => setShowImport(false)} />
+      )}
+
       {/* Add/Edit Panel */}
       {openAddPanel && (
         <AddCandidatePanel

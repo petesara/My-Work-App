@@ -114,6 +114,26 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
     return () => document.removeEventListener('mousedown', handler)
   }, [officeDropdownOpen])
 
+  const candidates_store = useStore((s) => s.candidates)
+
+  useEffect(() => {
+    if (form.isRehire !== 'yes') return
+    const phone = form.phone.replace(/\D/g, '')
+    const email = form.email.toLowerCase()
+    const name = `${form.firstName} ${form.lastName}`.toLowerCase().trim()
+    // Skip self when editing
+    const pool = candidates_store.filter(c => !isEdit || c.id !== candidateId)
+    const match = pool.find(c => {
+      const cp = (c.phone || '').replace(/\D/g, '')
+      const ce = (c.email || '').toLowerCase()
+      const cn = `${c.firstName || ''} ${c.lastName || ''}`.toLowerCase().trim()
+      return (phone && cp && phone === cp) || (email && ce && email === ce) || (name.length > 3 && cn && name === cn)
+    })
+    if (match && match.payrollId && !form.payrollId) {
+      setForm(f => ({ ...f, payrollId: match.payrollId }))
+    }
+  }, [form.isRehire, form.phone, form.email, form.firstName, form.lastName])
+
   const setField = (key, value) => {
     setForm((f) => {
       const u = { ...f, [key]: value }
@@ -234,6 +254,22 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
       source: form.source, interviewDate: form.interviewDate,
       interviewer: form.interviewer.trim(), status: form.status,
       notes: form.notes.trim(),
+      // For rehires with a payroll ID, auto-complete the user profile
+      ...(form.isRehire === 'yes' && form.payrollId.trim() ? (() => {
+        // Look for existing candidate with same payrollId to copy username
+        const existing = candidates.find(c => c.payrollId?.trim() === form.payrollId.trim() && (!isEdit || c.id !== candidateId))
+        const genUsr = ((form.firstName[0] || '') + (form.lastName || '')).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12)
+        const usr = (existing?.username) || genUsr
+        const pwd = form.phone.replace(/\D/g, '').slice(-4)
+        return {
+          username: usr,
+          password: pwd,
+          onboarding: {
+            userCreated: true,
+            userCreatedAt: new Date().toISOString(),
+          }
+        }
+      })() : {}),
       isDuplicate: duplicates.length > 0 && duplicateAction !== 'acknowledgedNew',
       isDNH: dnhMatches.length > 0 && dnhAcknowledged,
     }

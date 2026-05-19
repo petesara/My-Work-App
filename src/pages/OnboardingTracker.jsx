@@ -402,6 +402,8 @@ export default function OnboardingTracker() {
   const [filterRegion, setFilterRegion] = useState('all')
   const [filterOffice, setFilterOffice] = useState('')
   const [search, setSearch] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   // Only show in onboarding after user profile has been created
   const allHired = candidates.filter((c) => c.status === 'Hired')
@@ -418,6 +420,8 @@ export default function OnboardingTracker() {
     }
     if (filterRegion !== 'all' && c.region !== filterRegion) return false
     if (filterOffice && c.officeCode !== filterOffice) return false
+    if (dateFrom && (c.onboarding?.podActivatedDate || '') < dateFrom) return false
+    if (dateTo && (c.onboarding?.podActivatedDate || '') > dateTo) return false
     if (search) {
       const q = search.toLowerCase()
       if (!`${c.firstName} ${c.lastName}`.toLowerCase().includes(q) && !(c.officeCode || '').toLowerCase().includes(q)) return false
@@ -482,6 +486,20 @@ export default function OnboardingTracker() {
           <option value="">{t('all', language)} {t('officeCode', language)}</option>
           {OFFICES.map((o) => <option key={o.code} value={o.code}>{o.code} — {o.name}</option>)}
         </select>
+        <span style={{ fontSize: '0.72rem', color: '#9CA3AF', whiteSpace: 'nowrap' }}>
+          {language === 'FR' ? 'Complété:' : 'Completed:'}
+        </span>
+        <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+          style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #E5E7EB', fontSize: '0.75rem', fontFamily: 'IBM Plex Mono, monospace' }} />
+        <span style={{ color: '#9CA3AF', fontSize: '0.75rem' }}>→</span>
+        <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+          style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #E5E7EB', fontSize: '0.75rem', fontFamily: 'IBM Plex Mono, monospace' }} />
+        {(dateFrom || dateTo) && (
+          <button onClick={() => { setDateFrom(''); setDateTo('') }}
+            style={{ fontSize: '0.72rem', padding: '4px 8px', borderRadius: 5, border: '1px solid #E5E7EB', background: 'white', cursor: 'pointer', color: '#6B7280' }}>
+            ✕
+          </button>
+        )}
       </div>
 
       {/* Step legend */}

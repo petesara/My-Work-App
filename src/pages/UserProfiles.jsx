@@ -3,7 +3,8 @@ import useStore from '../store/useStore'
 import { t } from '../data/translations'
 
 function generateUsername(firstName, lastName) {
-  return ((firstName[0] || '') + (lastName || ''))
+  // fullFirstName + firstInitialOfLastName (e.g., "johns" for John Smith)
+  return ((firstName || '') + (lastName ? lastName[0] : ''))
     .toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12)
 }
 
@@ -13,6 +14,7 @@ function generatePassword(phone) {
 
 function ProfileCard({ candidate, language }) {
   const updateCandidate = useStore((s) => s.updateCandidate)
+  const allCandidates = useStore((s) => s.candidates)
   const addToast = useStore((s) => s.addToast)
   const [expanded, setExpanded] = useState(false)
   const [username, setUsername] = useState(generateUsername(candidate.firstName, candidate.lastName))
@@ -23,11 +25,19 @@ function ProfileCard({ candidate, language }) {
   const [usernameErr, setUsernameErr] = useState('')
   const [payrollErr, setPayrollErr] = useState('')
 
+  const usernameIsDuplicate = !!username && allCandidates.some(
+    c => c.id !== candidate.id && c.username && c.username.toLowerCase() === username.toLowerCase()
+  )
+
   const handleSave = () => {
     let ok = true
     if (!username.trim()) { setUsernameErr(FR ? 'Requis' : 'Required'); ok = false }
     if (!payrollId.trim()) { setPayrollErr(FR ? 'Requis' : 'Required'); ok = false }
     if (!ok) return
+    if (usernameIsDuplicate) {
+      setUsernameErr(FR ? 'Ce nom d\'utilisateur est déjà pris' : 'Username already taken — change it manually')
+      return
+    }
     updateCandidate(candidate.id, {
       username: username.trim().toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12),
       password,
@@ -99,11 +109,16 @@ function ProfileCard({ candidate, language }) {
                 {t('username', language)} *
               </label>
               <input
-                style={inp(usernameErr)}
+                style={inp(usernameErr || usernameIsDuplicate)}
                 value={username}
                 onChange={(e) => { setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12)); setUsernameErr('') }}
               />
               {usernameErr && <div style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: 2 }}>{usernameErr}</div>}
+              {usernameIsDuplicate && (
+                <div style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: 2, fontWeight: 700 }}>
+                  ⚠ {FR ? 'Nom d\'utilisateur déjà utilisé — modifier manuellement' : 'Username taken — change manually'}
+                </div>
+              )}
               <div style={{ fontSize: '0.65rem', color: '#9CA3AF', marginTop: 2 }}>{FR ? 'Max 12 caractères' : 'Max 12 chars, auto-generated'}</div>
             </div>
             <div>
@@ -152,12 +167,17 @@ function ProfileCard({ candidate, language }) {
 function CreatedCard({ candidate, language }) {
   const updateCandidate = useStore((s) => s.updateCandidate)
   const addToast = useStore((s) => s.addToast)
+  const allCandidates = useStore((s) => s.candidates)
   const [expanded, setExpanded] = useState(false)
   const [editing, setEditing] = useState(false)
   const [username, setUsername] = useState(candidate.username || '')
   const [payrollId, setPayrollId] = useState(candidate.payrollId || '')
   const [password, setPassword] = useState(candidate.password || generatePassword(candidate.phone))
   const FR = language === 'FR'
+
+  const usernameIsDuplicate = !!username && allCandidates.some(
+    c => c.id !== candidate.id && c.username && c.username.toLowerCase() === username.toLowerCase()
+  )
 
   // Keep local state in sync if candidate updates externally
   const handleEdit = () => {
@@ -168,6 +188,10 @@ function CreatedCard({ candidate, language }) {
   }
 
   const handleSave = () => {
+    if (usernameIsDuplicate) {
+      addToast(FR ? 'Nom d\'utilisateur déjà utilisé' : 'Username already taken', 'error')
+      return
+    }
     updateCandidate(candidate.id, {
       username: username.trim().toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12),
       payrollId: payrollId.trim(),
