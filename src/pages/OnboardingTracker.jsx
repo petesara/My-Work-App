@@ -7,7 +7,7 @@ const STEP_LABELS = ['step1', 'step2', 'step3', 'step4']
 
 function getOnboardingStatus(c) {
   const ob = c.onboarding || {}
-  if (!ob.userCreated) return 'awaitingUserCreation'
+  // Step 1 (user profile) is the gate condition — all candidates here already have it
   if (!ob.adpSentDate) return 'awaitingADPSend'
   // Once ADP complete date is set, missing docs no longer block progression
   if (!ob.adpCompleteDate) return 'adpSentPending'
@@ -74,7 +74,7 @@ function OnboardingRow({ candidate, language, role }) {
   const isHSF = candidate.charity === 'HSF'
 
   const steps = [
-    ob.userCreated,
+    true,                  // Step 1: always complete (username is the gate condition)
     !!ob.adpSentDate,
     !!ob.adpCompleteDate,
     !!ob.podActivatedDate,
@@ -392,7 +392,7 @@ function OnboardingRow({ candidate, language, role }) {
   )
 }
 
-const FILTER_OPTIONS = ['all', 'awaitingUserCreation', 'awaitingADPSend', 'adpSentPending', 'missingDocuments', 'podPending', 'fullyComplete']
+const FILTER_OPTIONS = ['all', 'awaitingADPSend', 'adpSentPending', 'missingDocuments', 'podPending', 'fullyComplete']
 
 export default function OnboardingTracker() {
   const language = useStore((s) => s.language)
@@ -427,7 +427,6 @@ export default function OnboardingTracker() {
 
   const counts = {
     all: hired.length,
-    awaitingUserCreation: hired.filter((c) => getOnboardingStatus(c) === 'awaitingUserCreation').length,
     awaitingADPSend: hired.filter((c) => getOnboardingStatus(c) === 'awaitingADPSend').length,
     adpSentPending: hired.filter((c) => getOnboardingStatus(c) === 'adpSentPending').length,
     missingDocuments: hired.filter((c) => { const md = c.onboarding?.missingDocs || {}; return Object.values(md).some(Boolean) }).length,

@@ -233,7 +233,7 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
       charity: form.charity, availability: form.availability, day0: form.day0,
       source: form.source, interviewDate: form.interviewDate,
       interviewer: form.interviewer.trim(), status: form.status,
-      notes: form.notes.trim(), username: form.username.trim(), password: form.password,
+      notes: form.notes.trim(),
       isDuplicate: duplicates.length > 0 && duplicateAction !== 'acknowledgedNew',
       isDNH: dnhMatches.length > 0 && dnhAcknowledged,
     }
