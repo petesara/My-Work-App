@@ -1,0 +1,492 @@
+import { useState, useRef } from 'react'
+import useStore from '../store/useStore'
+import { t } from '../data/translations'
+import { STATUSES } from '../data/offices'
+
+const TEMPLATE_HEADERS = 'First Name\tLast Name\tPhone\tEmail\tLanguage\tIs Rehire\tPayroll ID\tRegion\tSource\tInterview Date\tInterviewer\tStatus\tNotes'
+
+const STATUS_LIST = ['Pending', 'Hired', 'Rejected', 'No Show', 'Follow-up', '2nd Interview']
+
+function formatPhone(value) {
+  const digits = (value || '').replace(/\D/g, '').slice(0, 10)
+  if (digits.length < 4) return digits
+  if (digits.length < 7) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+}
+
+function parseDate(val) {
+  if (!val) return ''
+  const s = val.trim()
+  // YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
+  // MM/DD/YYYY
+  const mdy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  if (mdy) {
+    const [, m, d, y] = mdy
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`
+  }
+  return s
+}
+
+function mapHeader(h) {
+  const lower = h.trim().toLowerCase()
+  if (['first name', 'firstname', 'prénom'].includes(lower)) return 'firstName'
+  if (['last name', 'lastname', 'nom'].includes(lower)) return 'lastName'
+  if (['phone', 'téléphone'].includes(lower)) return 'phone'
+  if (lower === 'email') return 'email'
+  if (['language', 'langue'].includes(lower)) return 'languagePreference'
+  if (['is rehire', 'rehire', 'réembauche'].includes(lower)) return 'isRehire'
+  if (['payroll id', 'payrollid', 'id de paie'].includes(lower)) return 'payrollId'
+  if (lower === 'region') return 'region'
+  if (lower === 'source') return 'source'
+  if (['interview date', 'date'].includes(lower)) return 'interviewDate'
+  if (lower === 'interviewer') return 'interviewer'
+  if (['status', 'statut'].includes(lower)) return 'status'
+  if (lower === 'notes') return 'notes'
+  return null
+}
+
+function parseRow(headers, cells) {
+  const row = {}
+  headers.forEach((field, i) => {
+    if (!field) return
+    const raw = (cells[i] || '').trim()
+    if (field === 'phone') row[field] = formatPhone(raw)
+    else if (field === 'languagePreference') row[field] = raw.toLowerCase().startsWith('f') ? 'FR' : 'EN'
+    else if (field === 'isRehire') row[field] = /^[yo1]/i.test(raw)
+    else if (field === 'interviewDate') row[field] = parseDate(raw)
+    else if (field === 'status') {
+      const matched = STATUS_LIST.find(s => s.toLowerCase() === raw.toLowerCase())
+      row[field] = matched || 'Pending'
+    } else {
+      row[field] = raw
+    }
+  })
+  if (!row.firstName && !row.lastName) return null
+  return row
+}
+
+function checkDnh(row, doNotHireList) {
+  if (!doNotHireList || doNotHireList.length === 0) return false
+  const fullName = `${row.firstName || ''} ${row.lastName || ''}`.toLowerCase().trim()
+  const phone = (row.phone || '').replace(/\D/g, '')
+  const email = (row.email || '').toLowerCase()
+  return doNotHireList.some(d => {
+    const dName = `${d.firstName || ''} ${d.lastName || ''}`.toLowerCase().trim()
+    const dPhone = (d.phone || '').replace(/\D/g, '')
+    const dEmail = (d.email || '').toLowerCase()
+    if (phone && dPhone && phone === dPhone) return true
+    if (email && dEmail && email === dEmail) return true
+    if (fullName && dName && fullName === dName) return true
+    return false
+  })
+}
+
+function checkDuplicate(row, candidates) {
+  if (!candidates || candidates.length === 0) return false
+  const phone = (row.phone || '').replace(/\D/g, '')
+  const email = (row.email || '').toLowerCase()
+  const fullName = `${row.firstName || ''} ${row.lastName || ''}`.toLowerCase().trim()
+  return candidates.some(c => {
+    const cPhone = (c.phone || '').replace(/\D/g, '')
+    const cEmail = (c.email || '').toLowerCase()
+    const cName = `${c.firstName || ''} ${c.lastName || ''}`.toLowerCase().trim()
+    if (phone && cPhone && phone === cPhone) return true
+    if (email && cEmail && email === cEmail) return true
+    if (fullName && cName && fullName === cName) return true
+    return false
+  })
+}
+
+export default function ImportModal({ onClose }) {
+  const language = useStore(s => s.language)
+  const candidates = useStore(s => s.candidates)
+  const doNotHireList = useStore(s => s.doNotHireList)
+  const addCandidate = useStore(s => s.addCandidate)
+  const addToast = useStore(s => s.addToast)
+
+  const [pasteText, setPasteText] = useState('')
+  const [parsed, setParsed] = useState(null)
+  const [checked, setChecked] = useState([])
+  const [imported, setImported] = useState(false)
+  const textareaRef = useRef(null)
+
+  const isFR = language === 'FR'
+
+  const handleCopyTemplate = () => {
+    navigator.clipboard.writeText(TEMPLATE_HEADERS).then(() => {
+      addToast(isFR ? 'Modèle copié!' : 'Template copied!', 'success')
+    }).catch(() => {
+      if (textareaRef.current) {
+        textareaRef.current.value = TEMPLATE_HEADERS
+        textareaRef.current.select()
+        document.execCommand('copy')
+      }
+    })
+  }
+
+  const handleParsePreview = () => {
+    const lines = pasteText.split('\n').map(l => l.trimEnd()).filter(l => l.length > 0)
+    if (lines.length < 2) {
+      addToast(isFR ? 'Collez au moins une ligne de données.' : 'Paste at least one row of data.', 'error')
+      return
+    }
+    const rawHeaders = lines[0].split('\t')
+    const mappedHeaders = rawHeaders.map(mapHeader)
+    const rows = []
+    for (let i = 1; i < lines.length; i++) {
+      const cells = lines[i].split('\t')
+      const row = parseRow(mappedHeaders, cells)
+      if (row) rows.push(row)
+    }
+    if (rows.length === 0) {
+      addToast(isFR ? 'Aucune ligne valide trouvée.' : 'No valid rows found.', 'error')
+      return
+    }
+    // Annotate each row
+    const annotated = rows.map(row => {
+      const isDnh = checkDnh(row, doNotHireList)
+      const isDuplicate = !isDnh && checkDuplicate(row, candidates)
+      return { ...row, _isDnh: isDnh, _isDuplicate: isDuplicate }
+    })
+    setParsed(annotated)
+    setChecked(annotated.map(() => true))
+    setImported(false)
+  }
+
+  const handleToggleAll = () => {
+    const allChecked = checked.every(Boolean)
+    setChecked(checked.map(() => !allChecked))
+  }
+
+  const handleToggleRow = (i) => {
+    const next = [...checked]
+    next[i] = !next[i]
+    setChecked(next)
+  }
+
+  const handleImport = () => {
+    if (!parsed) return
+    let count = 0
+    parsed.forEach((row, i) => {
+      if (!checked[i]) return
+      const { _isDnh, _isDuplicate, ...candidate } = row
+      const finalCandidate = {
+        ...candidate,
+        isDNH: _isDnh,
+        isDuplicate: _isDuplicate,
+        status: candidate.status || 'Pending',
+        languagePreference: candidate.languagePreference || 'EN',
+        isRehire: candidate.isRehire || false,
+      }
+      addCandidate(finalCandidate)
+      count++
+    })
+    addToast(
+      isFR ? `${count} candidat(e)s importé(e)s avec succès.` : `${count} candidate${count !== 1 ? 's' : ''} imported successfully.`,
+      'success'
+    )
+    onClose()
+  }
+
+  const checkedCount = checked.filter(Boolean).length
+
+  const rowStatusLabel = (row) => {
+    if (row._isDnh) return 'DNH'
+    if (row._isDuplicate) return isFR ? 'Doublon' : 'Duplicate'
+    return 'OK'
+  }
+
+  const rowStatusStyle = (row) => {
+    if (row._isDnh) return { background: '#FEE2E2', color: '#991B1B', padding: '2px 8px', borderRadius: 10, fontSize: '0.7rem', fontWeight: 700 }
+    if (row._isDuplicate) return { background: '#FEF3C7', color: '#92400E', padding: '2px 8px', borderRadius: 10, fontSize: '0.7rem', fontWeight: 700 }
+    return { background: '#D1FAE5', color: '#065F46', padding: '2px 8px', borderRadius: 10, fontSize: '0.7rem', fontWeight: 700 }
+  }
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.35)',
+          zIndex: 200,
+        }}
+      />
+
+      {/* Panel */}
+      <div style={{
+        position: 'fixed', top: 0, right: 0, bottom: 0,
+        width: `min(640px, 100vw)`,
+        background: '#fff',
+        zIndex: 300,
+        display: 'flex', flexDirection: 'column',
+        boxShadow: '-4px 0 24px rgba(0,0,0,0.15)',
+        fontFamily: "'IBM Plex Sans', sans-serif",
+      }}>
+        {/* Sticky Header */}
+        <div style={{
+          position: 'sticky', top: 0,
+          background: '#0D1117',
+          padding: '16px 20px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexShrink: 0,
+          zIndex: 10,
+        }}>
+          <div>
+            <div style={{ color: '#fff', fontWeight: 700, fontSize: '1rem' }}>
+              {isFR ? 'Importer des candidat(e)s' : 'Import Candidates'}
+            </div>
+            <div style={{ color: '#6B7280', fontSize: '0.72rem', marginTop: 2 }}>
+              {isFR ? 'Import Candidates / Importer des candidat(e)s' : 'Import Candidates / Importer des candidat(e)s'}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none', border: 'none', color: '#9CA3AF',
+              fontSize: '1.4rem', cursor: 'pointer', lineHeight: 1,
+              padding: '2px 6px', borderRadius: 4,
+            }}
+            aria-label={t('close', language)}
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+
+          {/* Template section */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontWeight: 600, fontSize: '0.85rem', color: '#111827' }}>
+                {isFR ? 'Modèle (ordre des colonnes)' : 'Template (column order)'}
+              </span>
+              <button
+                onClick={handleCopyTemplate}
+                style={{
+                  background: '#F3F4F6', border: '1px solid #E5E7EB',
+                  borderRadius: 6, padding: '4px 12px',
+                  fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+                  color: '#374151',
+                }}
+              >
+                {isFR ? 'Copier le modèle' : 'Copy template'}
+              </button>
+            </div>
+            <div style={{
+              background: '#F9FAFB', border: '1px solid #E5E7EB',
+              borderRadius: 8, padding: '10px 14px',
+              fontFamily: "'IBM Plex Mono', monospace",
+              fontSize: '0.72rem', color: '#374151',
+              overflowX: 'auto', whiteSpace: 'nowrap',
+            }}>
+              {TEMPLATE_HEADERS.replace(/\t/g, '  |  ')}
+            </div>
+            <div style={{ fontSize: '0.7rem', color: '#9CA3AF', marginTop: 5 }}>
+              {isFR
+                ? 'Collez vos données avec la ligne d\'en-tête incluse. Les colonnes peuvent être dans n\'importe quel ordre.'
+                : 'Paste your data with the header row included. Columns can be in any order.'}
+            </div>
+          </div>
+
+          {/* Paste textarea */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', fontWeight: 600, fontSize: '0.8rem', color: '#374151', marginBottom: 6 }}>
+              {isFR ? 'Coller les données ici' : 'Paste data here'}
+            </label>
+            <textarea
+              ref={textareaRef}
+              value={pasteText}
+              onChange={e => { setPasteText(e.target.value); setParsed(null) }}
+              placeholder={isFR ? 'Collez vos données depuis Excel...' : 'Paste your data from Excel...'}
+              rows={8}
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                border: '1px solid #D1D5DB', borderRadius: 8,
+                padding: '10px 12px', fontSize: '0.78rem',
+                fontFamily: "'IBM Plex Mono', monospace",
+                resize: 'vertical', outline: 'none',
+                color: '#111827',
+              }}
+            />
+          </div>
+
+          <button
+            onClick={handleParsePreview}
+            disabled={!pasteText.trim()}
+            style={{
+              background: !pasteText.trim() ? '#E5E7EB' : '#0D1117',
+              color: !pasteText.trim() ? '#9CA3AF' : '#fff',
+              border: 'none', borderRadius: 8,
+              padding: '9px 20px', fontWeight: 700,
+              fontSize: '0.83rem', cursor: !pasteText.trim() ? 'not-allowed' : 'pointer',
+              marginBottom: 24,
+            }}
+          >
+            {isFR ? 'Analyser et prévisualiser' : 'Parse & Preview'}
+          </button>
+
+          {/* Preview table */}
+          {parsed && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#111827' }}>
+                  {isFR
+                    ? `Aperçu — ${parsed.length} ligne${parsed.length !== 1 ? 's' : ''} détectée${parsed.length !== 1 ? 's' : ''}`
+                    : `Preview — ${parsed.length} row${parsed.length !== 1 ? 's' : ''} detected`}
+                </div>
+                <button
+                  onClick={handleToggleAll}
+                  style={{
+                    background: 'none', border: '1px solid #D1D5DB',
+                    borderRadius: 6, padding: '3px 10px',
+                    fontSize: '0.72rem', cursor: 'pointer', color: '#374151',
+                  }}
+                >
+                  {checked.every(Boolean)
+                    ? (isFR ? 'Tout désélectionner' : 'Deselect all')
+                    : (isFR ? 'Tout sélectionner' : 'Select all')}
+                </button>
+              </div>
+
+              <div style={{ overflowX: 'auto', borderRadius: 8, border: '1px solid #E5E7EB' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
+                  <thead>
+                    <tr style={{ background: '#F9FAFB' }}>
+                      <th style={{ padding: '8px 10px', textAlign: 'center', borderBottom: '1px solid #E5E7EB', width: 32 }}>
+                        <input
+                          type="checkbox"
+                          checked={checked.every(Boolean)}
+                          onChange={handleToggleAll}
+                        />
+                      </th>
+                      <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid #E5E7EB', fontWeight: 600, color: '#6B7280', whiteSpace: 'nowrap' }}>
+                        {isFR ? 'Nom' : 'Name'}
+                      </th>
+                      <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid #E5E7EB', fontWeight: 600, color: '#6B7280', whiteSpace: 'nowrap' }}>
+                        {isFR ? 'Téléphone' : 'Phone'}
+                      </th>
+                      <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid #E5E7EB', fontWeight: 600, color: '#6B7280', whiteSpace: 'nowrap' }}>
+                        Email
+                      </th>
+                      <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid #E5E7EB', fontWeight: 600, color: '#6B7280', whiteSpace: 'nowrap' }}>
+                        {isFR ? 'Région' : 'Region'}
+                      </th>
+                      <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid #E5E7EB', fontWeight: 600, color: '#6B7280', whiteSpace: 'nowrap' }}>
+                        Source
+                      </th>
+                      <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid #E5E7EB', fontWeight: 600, color: '#6B7280', whiteSpace: 'nowrap' }}>
+                        {isFR ? 'Date' : 'Date'}
+                      </th>
+                      <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid #E5E7EB', fontWeight: 600, color: '#6B7280', whiteSpace: 'nowrap' }}>
+                        {t('status', language)}
+                      </th>
+                      <th style={{ padding: '8px 10px', textAlign: 'center', borderBottom: '1px solid #E5E7EB', fontWeight: 600, color: '#6B7280', whiteSpace: 'nowrap' }}>
+                        {isFR ? 'Résultat' : 'Result'}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {parsed.map((row, i) => (
+                      <tr
+                        key={i}
+                        style={{
+                          background: !checked[i] ? '#F9FAFB' : row._isDnh ? '#FFF5F5' : row._isDuplicate ? '#FFFBEB' : '#fff',
+                          opacity: checked[i] ? 1 : 0.5,
+                        }}
+                      >
+                        <td style={{ padding: '8px 10px', textAlign: 'center', borderBottom: '1px solid #F3F4F6' }}>
+                          <input type="checkbox" checked={!!checked[i]} onChange={() => handleToggleRow(i)} />
+                        </td>
+                        <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', whiteSpace: 'nowrap' }}>
+                          <span style={{ fontWeight: 600, color: '#111827' }}>
+                            {row.firstName} {row.lastName}
+                          </span>
+                        </td>
+                        <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', whiteSpace: 'nowrap', color: '#374151' }}>
+                          {row.phone || '—'}
+                        </td>
+                        <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', color: '#374151', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {row.email || '—'}
+                        </td>
+                        <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', color: '#374151' }}>
+                          {row.region || '—'}
+                        </td>
+                        <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', color: '#374151' }}>
+                          {row.source || '—'}
+                        </td>
+                        <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', color: '#374151', whiteSpace: 'nowrap' }}>
+                          {row.interviewDate || '—'}
+                        </td>
+                        <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', color: '#374151' }}>
+                          {row.status || 'Pending'}
+                        </td>
+                        <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center' }}>
+                          <span style={rowStatusStyle(row)}>{rowStatusLabel(row)}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Legend */}
+              <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: '0.7rem', color: '#6B7280' }}>
+                <span><span style={{ background: '#D1FAE5', color: '#065F46', padding: '1px 6px', borderRadius: 8, fontWeight: 600 }}>OK</span> {isFR ? 'Prêt à importer' : 'Ready to import'}</span>
+                <span><span style={{ background: '#FEF3C7', color: '#92400E', padding: '1px 6px', borderRadius: 8, fontWeight: 600 }}>{isFR ? 'Doublon' : 'Duplicate'}</span> {isFR ? 'Enregistrement existant' : 'Existing record'}</span>
+                <span><span style={{ background: '#FEE2E2', color: '#991B1B', padding: '1px 6px', borderRadius: 8, fontWeight: 600 }}>DNH</span> {isFR ? 'Liste Ne pas embaucher' : 'Do Not Hire list'}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Sticky footer */}
+        {parsed && (
+          <div style={{
+            borderTop: '1px solid #E5E7EB',
+            padding: '14px 20px',
+            background: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            flexShrink: 0,
+          }}>
+            <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>
+              {checkedCount} {isFR
+                ? `candidat(e)${checkedCount !== 1 ? 's' : ''} sélectionné(e)${checkedCount !== 1 ? 's' : ''}`
+                : `candidate${checkedCount !== 1 ? 's' : ''} selected`}
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={onClose}
+                style={{
+                  background: '#F3F4F6', border: '1px solid #E5E7EB',
+                  borderRadius: 8, padding: '9px 18px',
+                  fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', color: '#374151',
+                }}
+              >
+                {t('cancel', language)}
+              </button>
+              <button
+                onClick={handleImport}
+                disabled={checkedCount === 0}
+                style={{
+                  background: checkedCount === 0 ? '#E5E7EB' : '#CF2B1A',
+                  color: checkedCount === 0 ? '#9CA3AF' : '#fff',
+                  border: 'none', borderRadius: 8,
+                  padding: '9px 20px', fontWeight: 700,
+                  fontSize: '0.83rem', cursor: checkedCount === 0 ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {isFR
+                  ? `Importer ${checkedCount} candidat(e)${checkedCount !== 1 ? 's' : ''}`
+                  : `Import ${checkedCount} candidate${checkedCount !== 1 ? 's' : ''}`}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
+  )
+}

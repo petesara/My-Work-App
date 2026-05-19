@@ -5,6 +5,7 @@ import { t } from '../data/translations'
 const NAV_ITEMS = {
   recruitment: [
     { to: '/pipeline', key: 'pipeline', icon: '◈', shortcut: 'N' },
+    { to: '/calendar', key: 'calendar', icon: '◷' },
     { to: '/user-profiles', key: 'userProfiles', icon: '◎' },
     { to: '/do-not-hire', key: 'doNotHire', icon: '⊘' },
     { to: '/reports', key: 'reports', icon: '▣' },
@@ -16,6 +17,7 @@ const NAV_ITEMS = {
   ],
   operations: [
     { to: '/pipeline', key: 'pipeline', icon: '◈', shortcut: 'N' },
+    { to: '/calendar', key: 'calendar', icon: '◷' },
     { to: '/onboarding', key: 'onboarding', icon: '✦' },
     { to: '/reports', key: 'reports', icon: '▣' },
   ],

@@ -7,6 +7,7 @@ import ManagerDirectory from './pages/ManagerDirectory'
 import Reports from './pages/Reports'
 import DoNotHire from './pages/DoNotHire'
 import UserProfiles from './pages/UserProfiles'
+import Calendar from './pages/Calendar'
 import Layout from './components/Layout'
 
 function ProtectedRoute({ children }) {
@@ -64,6 +65,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <UserProfiles />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/calendar"
+        element={
+          <ProtectedRoute>
+            <Calendar />
           </ProtectedRoute>
         }
       />

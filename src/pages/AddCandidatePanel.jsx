@@ -215,7 +215,10 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
         const dPhone = (d.phone || '').replace(/\D/g, '')
         const dEmail = (d.email || '').toLowerCase()
         const dName = (d.name || '').toLowerCase()
-        return dPhone === phoneDigits || dEmail === emailLower || dName === nameLower
+        const dPayroll = (d.payrollId || '').trim()
+        const fPayroll = form.payrollId.trim()
+        return dPhone === phoneDigits || dEmail === emailLower || dName === nameLower ||
+          (dPayroll && fPayroll && dPayroll === fPayroll)
       })
       if (dnhFound.length > 0) { setDnhMatches(dnhFound); return }
     }
@@ -232,6 +235,7 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
       interviewer: form.interviewer.trim(), status: form.status,
       notes: form.notes.trim(), username: form.username.trim(), password: form.password,
       isDuplicate: duplicates.length > 0 && duplicateAction !== 'acknowledgedNew',
+      isDNH: dnhMatches.length > 0 && dnhAcknowledged,
     }
     if (isEdit) {
       updateCandidate(candidateId, candidateData)

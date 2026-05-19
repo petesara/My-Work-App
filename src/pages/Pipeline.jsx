@@ -4,6 +4,7 @@ import { t } from '../data/translations'
 import { REGIONS, STATUSES, OFFICES } from '../data/offices'
 import StatusBadge from '../components/StatusBadge'
 import AddCandidatePanel from './AddCandidatePanel'
+import ImportModal from './ImportModal'
 
 const COL_STYLE = { padding: '10px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }
 const TH_STYLE = { ...COL_STYLE, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.7rem', background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }
@@ -31,6 +32,7 @@ export default function Pipeline() {
   const editingCandidateId = useStore((s) => s.editingCandidateId)
 
   const [loading, setLoading] = useState(true)
+  const [showImport, setShowImport] = useState(false)
   const [tab, setTab] = useState('all') // 'all' | 'new' | 'rehire'
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
@@ -92,13 +94,21 @@ export default function Pipeline() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
         <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#111827', margin: 0 }}>{t('pipeline', language)}</h1>
         {canAdd && (
-          <button
-            onClick={() => setOpenAddPanel(true)}
-            style={{ background: '#CF2B1A', color: 'white', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            + {t('addCandidate', language)}
-            <span style={{ fontSize: '0.65rem', opacity: 0.7, fontFamily: 'IBM Plex Mono, monospace', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 3, padding: '1px 4px' }}>N</span>
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => setShowImport(true)}
+              style={{ background: 'white', color: '#374151', border: '1px solid #D1D5DB', borderRadius: 8, padding: '8px 16px', fontSize: '0.875rem', fontWeight: 500, cursor: 'pointer' }}
+            >
+              ↑ {language === 'FR' ? 'Importer' : 'Import'}
+            </button>
+            <button
+              onClick={() => setOpenAddPanel(true)}
+              style={{ background: '#CF2B1A', color: 'white', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              + {t('addCandidate', language)}
+              <span style={{ fontSize: '0.65rem', opacity: 0.7, fontFamily: 'IBM Plex Mono, monospace', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 3, padding: '1px 4px' }}>N</span>
+            </button>
+          </div>
         )}
       </div>
 
@@ -204,11 +214,16 @@ export default function Pipeline() {
                   onMouseLeave={(e) => (e.currentTarget.style.background = idx % 2 === 0 ? 'white' : '#FAFAFA')}
                 >
                   <td style={{ ...COL_STYLE, fontWeight: 500, color: '#111827' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
                       <span>{c.firstName} {c.lastName}{c.preferredName && <span style={{ color: '#9CA3AF', fontWeight: 400 }}> ({c.preferredName})</span>}</span>
+                      {c.isDNH && (
+                        <span title={language === 'FR' ? 'Sur la liste Ne pas embaucher' : 'On Do Not Hire list'} style={{ fontSize: '0.58rem', background: '#DC2626', color: 'white', borderRadius: 4, padding: '1px 5px', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                          DNH
+                        </span>
+                      )}
                       {c.status === 'Hired' && !c.username && (
-                        <span title={language === 'FR' ? 'Profil utilisateur manquant' : 'User profile missing'} style={{ fontSize: '0.6rem', background: '#FEE2E2', color: '#CF2B1A', borderRadius: 6, padding: '1px 6px', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                          {language === 'FR' ? '⚠ No Profile' : '⚠ No Profile'}
+                        <span title={language === 'FR' ? 'Profil utilisateur manquant' : 'User profile missing'} style={{ fontSize: '0.58rem', background: '#FEE2E2', color: '#CF2B1A', borderRadius: 4, padding: '1px 5px', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                          ⚠ {language === 'FR' ? 'Profil' : 'Profile'}
                         </span>
                       )}
                     </div>

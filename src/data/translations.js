@@ -10,6 +10,7 @@ export const translations = {
     reports: 'Reports',
     doNotHire: 'Do Not Hire',
     userProfiles: 'User Profiles',
+    calendar: 'Calendar',
     settings: 'Settings',
 
     // Statuses
@@ -164,6 +165,7 @@ export const translations = {
     reports: 'Rapports',
     doNotHire: 'Ne pas embaucher',
     userProfiles: 'Profils utilisateurs',
+    calendar: 'Calendrier',
     settings: 'Paramètres',
 
     // Statuses

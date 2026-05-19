@@ -209,56 +209,34 @@ function OnboardingRow({ candidate, language, role }) {
           )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
 
-            {/* Step 1: User Created — Recruitment only */}
-            <div style={{
-              background: 'white', borderRadius: 8, padding: '14px',
-              border: `1px solid ${ob.userCreated ? '#D1FAE5' : '#E5E7EB'}`,
-              opacity: isAdmin ? 0.7 : 1,
-            }}>
-              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
-                1. {t('step1', language)}
+            {/* Step 1: User Profile — auto-complete, created via User Profiles page */}
+            <div style={{ background: '#F0FDF4', borderRadius: 8, padding: '14px', border: '1px solid #D1FAE5' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+                1. {t('step1', language)} ✓
               </div>
-              {isAdmin && (
-                <div style={{ fontSize: '0.65rem', color: '#9CA3AF', marginBottom: 8, fontStyle: 'italic' }}>
-                  {language === 'FR' ? 'Géré par le recrutement' : 'Managed by Recruitment'}
+              <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: 10, fontStyle: 'italic' }}>
+                {language === 'FR' ? 'Créé via « Profils utilisateurs » par le recrutement' : 'Created via "User Profiles" by Recruitment'}
+              </div>
+              <div style={{ padding: '8px 10px', background: 'white', borderRadius: 6, fontSize: '0.75rem' }}>
+                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ color: '#9CA3AF', fontSize: '0.65rem', marginBottom: 2 }}>{t('username', language)}</div>
+                    <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontWeight: 700, color: '#111827' }}>{candidate.username}</div>
+                  </div>
+                  <div>
+                    <div style={{ color: '#9CA3AF', fontSize: '0.65rem', marginBottom: 2 }}>{t('password', language)}</div>
+                    <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontWeight: 700, color: '#CF2B1A', letterSpacing: '0.15em' }}>{candidate.password}</div>
+                  </div>
+                  <div>
+                    <div style={{ color: '#9CA3AF', fontSize: '0.65rem', marginBottom: 2 }}>{t('payrollId', language)}</div>
+                    <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontWeight: 600, color: '#111827' }}>{candidate.payrollId || '—'}</div>
+                  </div>
                 </div>
-              )}
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: (isOps || isAdmin) ? 'not-allowed' : 'pointer', marginBottom: 8 }}>
-                <input
-                  type="checkbox"
-                  checked={ob.userCreated || false}
-                  disabled={isOps || isAdmin}
-                  onChange={(e) => update('userCreated', e.target.checked)}
-                  style={checkboxStyle(isOps || isAdmin)}
-                />
-                <span style={{ fontSize: '0.8rem', fontWeight: ob.userCreated ? 600 : 400, color: ob.userCreated ? '#065F46' : '#374151' }}>
-                  {t('userCreated', language)}
-                </span>
-              </label>
-              {ob.userCreatedAt && (
-                <div style={{ fontSize: '0.65rem', color: '#059669', marginBottom: 8 }}>
-                  ✓ {fmtDateTime(ob.userCreatedAt)}
-                </div>
-              )}
-              {ob.userCreated && candidate.username && (
-                <div style={{ marginTop: 8, padding: '8px 10px', background: '#F9FAFB', borderRadius: 6, fontSize: '0.75rem' }}>
-                  <div style={{ color: '#6B7280', marginBottom: 4 }}>{t('username', language)}:</div>
-                  <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontWeight: 600, color: '#111827' }}>{candidate.username}</div>
-                  <div style={{ color: '#6B7280', marginTop: 4 }}>{t('password', language)}:</div>
-                  <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontWeight: 700, color: '#CF2B1A', letterSpacing: '0.2em', fontSize: '0.9rem' }}>{candidate.password}</div>
-                </div>
-              )}
-              <div style={{ marginTop: 8 }}>
-                <div style={{ fontSize: '0.7rem', color: '#6B7280', marginBottom: 4 }}>{t('payrollId', language)}:</div>
-                <input
-                  type="text"
-                  value={candidate.payrollId || ''}
-                  disabled={isOps || isAdmin}
-                  onChange={(e) => updateCandidate(candidate.id, { payrollId: e.target.value })}
-                  onBlur={() => !isOps && !isAdmin && addToast(t('updatedSuccessfully', language), 'success')}
-                  placeholder={language === 'FR' ? 'Entrer ID...' : 'Enter ID...'}
-                  style={{ ...dateInpStyle(isOps || isAdmin), width: '100%' }}
-                />
+                {ob.userCreatedAt && (
+                  <div style={{ fontSize: '0.65rem', color: '#059669', marginTop: 8 }}>
+                    ✓ {fmtDateTime(ob.userCreatedAt)}
+                  </div>
+                )}
               </div>
             </div>
 
