@@ -221,7 +221,7 @@ function OnboardingRow({ candidate, language, role }) {
                 <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                   <div>
                     <div style={{ color: '#9CA3AF', fontSize: '0.65rem', marginBottom: 2 }}>{t('username', language)}</div>
-                    <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontWeight: 700, color: '#111827' }}>{candidate.username}</div>
+                    <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontWeight: 700, color: '#111827' }}>{candidate.username || <span style={{ color: '#9CA3AF', fontStyle: 'italic', fontFamily: 'IBM Plex Sans, sans-serif', fontWeight: 400 }}>{language === 'FR' ? 'Compte actif (historique)' : 'Active account (historical)'}</span>}</div>
                   </div>
                   <div>
                     <div style={{ color: '#9CA3AF', fontSize: '0.65rem', marginBottom: 2 }}>{t('password', language)}</div>
@@ -405,10 +405,17 @@ export default function OnboardingTracker() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
 
-  // Only show in onboarding after user profile has been created
+  // Active hires: non-historical with username
+  // + 2026 historical in-progress (POD not yet activated) — already active in the real system
+  const hist2026InProgress = candidates.filter((c) =>
+    c.isHistorical &&
+    !c.onboarding?.podActivated &&
+    c.status === 'Hired' &&
+    new Date(c.createdAt).getFullYear() >= 2026
+  )
   const allHired = candidates.filter((c) => c.status === 'Hired' && !c.isHistorical)
   const awaitingProfile = allHired.filter((c) => !c.username)
-  const hired = allHired.filter((c) => !!c.username)
+  const hired = [...allHired.filter((c) => !!c.username), ...hist2026InProgress]
 
   const filtered = hired.filter((c) => {
     const obStatus = getOnboardingStatus(c)
