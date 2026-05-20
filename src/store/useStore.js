@@ -60,6 +60,20 @@ const useStore = create(
           doNotHireList: state.doNotHireList.filter((d) => d.id !== id),
         })),
 
+      importHistoricalCandidates: (records) => {
+        set((state) => {
+          const existingPayrolls = new Set(state.candidates.map(c => c.payrollId).filter(Boolean))
+          const existingPhones = new Set(state.candidates.map(c => (c.phone || '').replace(/\D/g, '')).filter(Boolean))
+          const toAdd = records.filter(r => {
+            if (r.payrollId && existingPayrolls.has(r.payrollId)) return false
+            const ph = (r.phone || '').replace(/\D/g, '')
+            if (ph && existingPhones.has(ph)) return false
+            return true
+          })
+          return { candidates: [...state.candidates, ...toAdd] }
+        })
+      },
+
       updateManager: (code, updates) =>
         set((state) => ({
           managers: state.managers.map((m) =>
