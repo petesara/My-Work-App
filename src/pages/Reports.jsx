@@ -13,12 +13,12 @@ const STATUS_COLORS = {
 }
 const STATUSES = ['Pending', 'Hired', 'Rejected', 'No Show', 'Follow-up', '2nd Interview']
 
-function StatCard({ label, value, sub, color, small }) {
+function StatCard({ label, value, sub, color, small, accent }) {
   return (
-    <div style={{ background: 'white', borderRadius: 10, padding: small ? '14px 18px' : '18px 22px', border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-      <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>{label}</div>
-      <div style={{ fontSize: small ? '1.5rem' : '2rem', fontWeight: 700, color: color || '#111827', lineHeight: 1 }}>{value}</div>
-      {sub && <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginTop: 5 }}>{sub}</div>}
+    <div style={{ background: 'white', borderRadius: 12, padding: small ? '14px 18px' : '18px 20px', border: '1px solid #E8EAF6', boxShadow: '0 1px 3px rgba(30,39,105,0.05)', borderTop: accent ? `3px solid ${accent}` : undefined }}>
+      <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>{label}</div>
+      <div style={{ fontSize: small ? '1.6rem' : '2rem', fontWeight: 800, color: color || '#1E2769', lineHeight: 1, letterSpacing: '-0.02em' }}>{value}</div>
+      {sub && <div style={{ fontSize: '0.7rem', color: '#94A3B8', marginTop: 6 }}>{sub}</div>}
     </div>
   )
 }
@@ -43,7 +43,7 @@ function BarChart({ data, total }) {
 
 function SectionHeader({ title }) {
   return (
-    <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#374151', margin: '0 0 14px', padding: '0 0 8px', borderBottom: '1px solid #F3F4F6' }}>
+    <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', margin: '0 0 16px', padding: '0 0 10px', borderBottom: '1px solid #E8EAF6', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
       {title}
     </h3>
   )
@@ -176,7 +176,7 @@ export default function Reports() {
     <div style={{ padding: 24 }}>
       {/* Header + filters */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-        <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#111827', margin: 0 }}>{t('reports', language)}</h1>
+        <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1E2769', margin: 0, letterSpacing: '-0.02em' }}>{t('reports', language)}</h1>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           {DATE_PRESETS.map((p) => (
             <button key={p.key} onClick={() => setPreset(p.key)} style={presetBtnStyle(preset === p.key)}>
@@ -206,19 +206,19 @@ export default function Reports() {
 
       {/* Top KPI cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, marginBottom: 24 }}>
-        <StatCard label={FR ? 'Total' : 'Total Candidates'} value={total} sub={`${dateFrom || '—'} → ${dateTo || '—'}`} />
-        <StatCard label={FR ? 'Embauché(e)s' : 'Hired'} value={hiredCount} sub={`${hireRate}% ${FR ? 'taux' : 'hire rate'}`} color={hireRate >= 30 ? '#059669' : '#D97706'} />
-        <StatCard label={FR ? 'Taux embauche' : 'Hire Rate'} value={`${hireRate}%`} sub={`${hiredCount} / ${interviewed} ${FR ? 'interviewé(e)s' : 'interviewed'}`} color={hireRate >= 30 ? '#059669' : '#D97706'} />
-        <StatCard label={FR ? 'Taux d\'absence' : 'No-Show Rate'} value={`${noShowRate}%`} sub={`${noShowCount} ${FR ? 'absent(e)s' : 'no-shows'}`} color={noShowRate > 20 ? '#DC2626' : '#374151'} />
-        <StatCard label={FR ? 'Docs manquants' : 'Missing Docs'} value={missingDocsCount} sub={FR ? 'embauché(e)s avec docs manquants' : 'hired w/ missing docs'} color={missingDocsCount > 0 ? '#D97706' : '#374151'} />
-        <StatCard label={FR ? 'Rejeté(e)s' : 'Rejected'} value={rejectedCount} color="#EF4444" />
-        <StatCard label={FR ? 'FR / EN' : 'FR / EN'} value={`${frCount} / ${enCount}`} sub={FR ? 'candidat(e)s' : 'candidates'} />
-        <StatCard label={FR ? 'En attente' : 'Pending'} value={filtered.filter((c) => c.status === 'Pending').length} color="#F59E0B" />
+        <StatCard label={FR ? 'Total' : 'Total Candidates'} value={total} sub={`${dateFrom || '—'} → ${dateTo || '—'}`} accent="#1E2769" />
+        <StatCard label={FR ? 'Embauché(e)s' : 'Hired'} value={hiredCount} sub={`${hireRate}% ${FR ? 'taux' : 'hire rate'}`} color={hireRate >= 30 ? '#059669' : '#D97706'} accent="#2DCDB8" />
+        <StatCard label={FR ? 'Taux embauche' : 'Hire Rate'} value={`${hireRate}%`} sub={`${hiredCount} / ${interviewed} ${FR ? 'interviewé(e)s' : 'interviewed'}`} color={hireRate >= 30 ? '#059669' : '#D97706'} accent={hireRate >= 30 ? '#2DCDB8' : '#F59E0B'} />
+        <StatCard label={FR ? 'Taux d\'absence' : 'No-Show Rate'} value={`${noShowRate}%`} sub={`${noShowCount} ${FR ? 'absent(e)s' : 'no-shows'}`} color={noShowRate > 20 ? '#DC2626' : '#64748B'} accent={noShowRate > 20 ? '#F0194A' : '#E8EAF6'} />
+        <StatCard label={FR ? 'Docs manquants' : 'Missing Docs'} value={missingDocsCount} sub={FR ? 'embauché(e)s avec docs manquants' : 'hired w/ missing docs'} color={missingDocsCount > 0 ? '#D97706' : '#64748B'} accent={missingDocsCount > 0 ? '#F59E0B' : '#E8EAF6'} />
+        <StatCard label={FR ? 'Rejeté(e)s' : 'Rejected'} value={rejectedCount} color="#EF4444" accent="#F0194A" />
+        <StatCard label={FR ? 'FR / EN' : 'FR / EN'} value={`${frCount} / ${enCount}`} sub={FR ? 'candidat(e)s' : 'candidates'} accent="#3B82F6" />
+        <StatCard label={FR ? 'En attente' : 'Pending'} value={filtered.filter((c) => c.status === 'Pending').length} color="#F59E0B" accent="#F59E0B" />
       </div>
 
       {/* New Hires vs Rehires */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
-        <div style={{ background: 'white', borderRadius: 10, padding: 20, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <div style={{ background: 'white', borderRadius: 10, padding: 20, border: '1px solid #E8EAF6', boxShadow: '0 1px 3px rgba(30,39,105,0.05)' }}>
           <SectionHeader title={FR ? 'Nouvelles embauches vs Réembauches (tous candidat(e)s)' : 'New Hires vs Rehires (all candidates)'} />
           <div style={{ display: 'flex', gap: 24 }}>
             <div>
@@ -258,7 +258,7 @@ export default function Reports() {
           </div>
         </div>
 
-        <div style={{ background: 'white', borderRadius: 10, padding: 20, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <div style={{ background: 'white', borderRadius: 10, padding: 20, border: '1px solid #E8EAF6', boxShadow: '0 1px 3px rgba(30,39,105,0.05)' }}>
           <SectionHeader title={FR ? 'Par statut' : 'By Status'} />
           <BarChart data={statusData} total={total} />
         </div>
@@ -266,7 +266,7 @@ export default function Reports() {
 
       {/* By source */}
       {sourceBreakdown.length > 0 && (
-        <div style={{ background: 'white', borderRadius: 10, padding: 20, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', marginBottom: 24 }}>
+        <div style={{ background: 'white', borderRadius: 10, padding: 20, border: '1px solid #E8EAF6', boxShadow: '0 1px 3px rgba(30,39,105,0.05)', marginBottom: 24 }}>
           <SectionHeader title={FR ? 'Par source' : 'By Source'} />
           <BarChart data={sourceBreakdown} total={total} />
         </div>
@@ -274,7 +274,7 @@ export default function Reports() {
 
       {/* Region breakdown table */}
       {regionBreakdown.length > 0 && (
-        <div style={{ background: 'white', borderRadius: 10, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', marginBottom: 24, overflow: 'hidden' }}>
+        <div style={{ background: 'white', borderRadius: 10, border: '1px solid #E8EAF6', boxShadow: '0 1px 3px rgba(30,39,105,0.05)', marginBottom: 24, overflow: 'hidden' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #F3F4F6' }}>
             <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#374151', margin: 0 }}>
               {FR ? 'Rapport par région' : 'Region Breakdown'}

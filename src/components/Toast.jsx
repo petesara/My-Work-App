@@ -1,21 +1,9 @@
 import useStore from '../store/useStore'
 
-const TYPE_STYLES = {
-  success: 'border-l-4 border-green-500 bg-white',
-  error: 'border-l-4 border-red-500 bg-white',
-  warning: 'border-l-4 border-amber-500 bg-white',
-}
-
-const TYPE_ICONS = {
-  success: '✓',
-  error: '✕',
-  warning: '⚠',
-}
-
-const TYPE_ICON_COLORS = {
-  success: 'text-green-500',
-  error: 'text-red-500',
-  warning: 'text-amber-500',
+const TYPES = {
+  success: { border: '#2DCDB8', icon: '✓', iconBg: '#E6FAF8', iconColor: '#1AA090' },
+  error:   { border: '#F0194A', icon: '✕', iconBg: '#FFE8EE', iconColor: '#C9123A' },
+  warning: { border: '#F59E0B', icon: '!', iconBg: '#FEF3C7', iconColor: '#D97706' },
 }
 
 export default function Toast() {
@@ -25,24 +13,43 @@ export default function Toast() {
   if (!toasts.length) return null
 
   return (
-    <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
-      {toasts.map((toast) => (
-        <div
-          key={toast.id}
-          className={`pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-lg shadow-lg min-w-[280px] max-w-sm ${TYPE_STYLES[toast.type] || TYPE_STYLES.success}`}
-        >
-          <span className={`text-sm font-bold mt-0.5 ${TYPE_ICON_COLORS[toast.type] || TYPE_ICON_COLORS.success}`}>
-            {TYPE_ICONS[toast.type] || TYPE_ICONS.success}
-          </span>
-          <span className="flex-1 text-sm text-gray-800">{toast.message}</span>
-          <button
-            onClick={() => removeToast(toast.id)}
-            className="text-gray-400 hover:text-gray-600 text-sm leading-none ml-2 mt-0.5"
+    <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, display: 'flex', flexDirection: 'column', gap: 10, pointerEvents: 'none' }}>
+      {toasts.map((toast) => {
+        const t = TYPES[toast.type] || TYPES.success
+        return (
+          <div
+            key={toast.id}
+            className="toast-item"
+            style={{
+              pointerEvents: 'auto',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '12px 16px 12px 12px',
+              background: 'white',
+              border: '1px solid #E8EAF6',
+              borderLeft: `4px solid ${t.border}`,
+              borderRadius: 12,
+              boxShadow: '0 4px 20px rgba(30,39,105,0.12)',
+              minWidth: 280,
+              maxWidth: 360,
+            }}
           >
-            ×
-          </button>
-        </div>
-      ))}
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: t.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: t.iconColor }}>{t.icon}</span>
+            </div>
+            <span style={{ flex: 1, fontSize: '0.82rem', color: '#111827', fontWeight: 500, lineHeight: 1.4 }}>{toast.message}</span>
+            <button
+              onClick={() => removeToast(toast.id)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#B0B8CC', fontSize: '1rem', lineHeight: 1, padding: 2, flexShrink: 0 }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = '#6B7280')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = '#B0B8CC')}
+            >
+              ×
+            </button>
+          </div>
+        )
+      })}
     </div>
   )
 }

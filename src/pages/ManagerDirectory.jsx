@@ -93,7 +93,7 @@ export default function ManagerDirectory() {
     <div style={{ padding: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#111827', margin: 0 }}>{t('managerDirectory', language)}</h1>
+          <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1E2769', margin: 0, letterSpacing: '-0.02em' }}>{t('managerDirectory', language)}</h1>
           <p style={{ fontSize: '0.8rem', color: '#9CA3AF', margin: '4px 0 0' }}>
             {filtered.length} {language === 'FR' ? 'bureaux' : 'offices'}
             {canEdit && <span style={{ color: '#F0194A', marginLeft: 8 }}>· {language === 'FR' ? 'Cliquez sur un gestionnaire pour modifier' : 'Click a manager name to edit'}</span>}

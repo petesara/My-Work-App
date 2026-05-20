@@ -7,7 +7,16 @@ import AddCandidatePanel from './AddCandidatePanel'
 import ImportModal from './ImportModal'
 
 const COL_STYLE = { padding: '10px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }
-const TH_STYLE = { ...COL_STYLE, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.7rem', background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }
+const TH_STYLE = {
+  ...COL_STYLE,
+  fontWeight: 600,
+  color: '#94A3B8',
+  textTransform: 'uppercase',
+  letterSpacing: '0.1em',
+  fontSize: '0.62rem',
+  background: '#F6F7FC',
+  borderBottom: '2px solid #E8EAF6',
+}
 
 function SkeletonRow() {
   return (
@@ -18,6 +27,42 @@ function SkeletonRow() {
         </td>
       ))}
     </tr>
+  )
+}
+
+function FocusInput({ style, ...props }) {
+  const [focused, setFocused] = useState(false)
+  return (
+    <input
+      {...props}
+      style={{
+        ...style,
+        borderColor: focused ? '#2DCDB8' : '#E8EAF6',
+        boxShadow: focused ? '0 0 0 3px rgba(45,205,184,0.12)' : 'none',
+        outline: 'none',
+        transition: 'border-color 0.15s, box-shadow 0.15s',
+      }}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+    />
+  )
+}
+
+function FocusSelect({ style, ...props }) {
+  const [focused, setFocused] = useState(false)
+  return (
+    <select
+      {...props}
+      style={{
+        ...style,
+        borderColor: focused ? '#2DCDB8' : '#E8EAF6',
+        boxShadow: focused ? '0 0 0 3px rgba(45,205,184,0.12)' : 'none',
+        outline: 'none',
+        transition: 'border-color 0.15s, box-shadow 0.15s',
+      }}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+    />
   )
 }
 
@@ -91,12 +136,26 @@ export default function Pipeline() {
     return true
   })
 
+  // KPI stats computed from activeOnly (non-historical)
+  const totalActive = activeOnly.length
+  const hired = activeOnly.filter(c => c.status === 'Hired').length
+  const pending = activeOnly.filter(c => c.status === 'Pending').length
+  const interviewed = activeOnly.filter(c => c.status !== 'Pending').length
+  const hireRate = Math.round(hired / Math.max(interviewed, 1) * 100)
+
+  const kpiCards = [
+    { label: language === 'FR' ? 'Actifs' : 'Total Active', value: totalActive, dot: '#2DCDB8' },
+    { label: language === 'FR' ? 'Embauchés' : 'Hired', value: hired, dot: '#F0194A' },
+    { label: language === 'FR' ? 'En attente' : 'Pending', value: pending, dot: '#F59E0B' },
+    { label: language === 'FR' ? 'Taux d\'embauche' : 'Hire Rate', value: `${hireRate}%`, dot: '#2DCDB8' },
+  ]
+
   const btnStyle = (active) => ({
     padding: '5px 12px',
     fontSize: '0.75rem',
     fontWeight: 500,
     borderRadius: 6,
-    border: active ? '1.5px solid #F0194A' : '1px solid #E5E7EB',
+    border: active ? '1.5px solid #F0194A' : '1px solid #E8EAF6',
     background: active ? '#FFF0F5' : 'white',
     color: active ? '#F0194A' : '#374151',
     cursor: 'pointer',
@@ -107,7 +166,9 @@ export default function Pipeline() {
     <div style={{ padding: 24, position: 'relative' }}>
       {/* Top bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
-        <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#111827', margin: 0 }}>{t('pipeline', language)}</h1>
+        <h1 className="page-title" style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1E2769', letterSpacing: '-0.02em', margin: 0 }}>
+          {t('pipeline', language)}
+        </h1>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           {historicalCount > 0 && (
             <button
@@ -117,8 +178,8 @@ export default function Pipeline() {
                 : (language === 'FR' ? 'Afficher les données historiques' : 'Show historical records')}
               style={{
                 background: showHistorical ? '#EFF6FF' : 'white',
-                color: showHistorical ? '#1E40AF' : '#6B7280',
-                border: `1px solid ${showHistorical ? '#BFDBFE' : '#E5E7EB'}`,
+                color: showHistorical ? '#1E40AF' : '#64748B',
+                border: `1px solid ${showHistorical ? '#BFDBFE' : '#E8EAF6'}`,
                 borderRadius: 8, padding: '7px 14px', fontSize: '0.78rem', fontWeight: showHistorical ? 700 : 500, cursor: 'pointer',
               }}
             >
@@ -131,13 +192,13 @@ export default function Pipeline() {
           <>
             <button
               onClick={() => setShowImport(true)}
-              style={{ background: 'white', color: '#374151', border: '1px solid #D1D5DB', borderRadius: 8, padding: '8px 16px', fontSize: '0.875rem', fontWeight: 500, cursor: 'pointer' }}
+              style={{ background: 'white', color: '#374151', border: '1px solid #E8EAF6', borderRadius: 8, padding: '8px 16px', fontSize: '0.875rem', fontWeight: 500, cursor: 'pointer' }}
             >
               ↑ {language === 'FR' ? 'Importer' : 'Import'}
             </button>
             <button
               onClick={() => setOpenAddPanel(true)}
-              style={{ background: '#F0194A', color: 'white', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+              style={{ background: '#F0194A', color: 'white', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 8px rgba(240,25,74,0.3)' }}
             >
               + {t('addCandidate', language)}
               <span style={{ fontSize: '0.65rem', opacity: 0.7, fontFamily: 'IBM Plex Mono, monospace', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 3, padding: '1px 4px' }}>N</span>
@@ -146,8 +207,34 @@ export default function Pipeline() {
         </div>
       </div>
 
+      {/* KPI Stats Strip */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+        {kpiCards.map((kpi) => (
+          <div
+            key={kpi.label}
+            style={{
+              background: 'white',
+              border: '1px solid #E8EAF6',
+              borderRadius: 12,
+              padding: '14px 18px',
+              boxShadow: '0 1px 3px rgba(30,39,105,0.05)',
+              minWidth: 110,
+              flex: '1 1 110px',
+            }}
+          >
+            <div style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>
+              {kpi.label}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: kpi.dot, flexShrink: 0, display: 'inline-block' }} />
+              <span style={{ fontSize: '1.35rem', fontWeight: 800, color: '#1E2769', lineHeight: 1 }}>{kpi.value}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* New / Rehire tabs */}
-      <div style={{ display: 'flex', gap: 0, marginBottom: 16, borderBottom: '2px solid #E5E7EB' }}>
+      <div style={{ display: 'flex', gap: 0, marginBottom: 16, borderBottom: '2px solid #E8EAF6' }}>
         {[
           { key: 'all', label: language === 'FR' ? 'Tous' : 'All', count: displayBase.length },
           { key: 'new', label: language === 'FR' ? 'Nouvelles embauches' : 'New Hires', count: newCount },
@@ -158,13 +245,13 @@ export default function Pipeline() {
             onClick={() => setTab(key)}
             style={{
               padding: '8px 18px', fontSize: '0.825rem', fontWeight: tab === key ? 700 : 400,
-              background: 'none', border: 'none', borderBottom: tab === key ? '2px solid #F0194A' : '2px solid transparent',
-              color: tab === key ? '#F0194A' : '#6B7280', cursor: 'pointer', marginBottom: -2,
+              background: 'none', border: 'none', borderBottom: tab === key ? '2px solid #1E2769' : '2px solid transparent',
+              color: tab === key ? '#1E2769' : '#64748B', cursor: 'pointer', marginBottom: -2,
               transition: 'all 0.15s',
             }}
           >
             {label}
-            <span style={{ marginLeft: 6, fontSize: '0.7rem', background: tab === key ? '#FFF0F5' : '#F3F4F6', color: tab === key ? '#F0194A' : '#9CA3AF', borderRadius: 10, padding: '1px 6px', fontWeight: 600 }}>
+            <span style={{ marginLeft: 6, fontSize: '0.7rem', background: tab === key ? '#ECEEFA' : '#F3F4F6', color: tab === key ? '#1E2769' : '#9CA3AF', borderRadius: 10, padding: '1px 6px', fontWeight: 600 }}>
               {count}
             </span>
           </button>
@@ -172,45 +259,56 @@ export default function Pipeline() {
       </div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-        <input
+      <div style={{
+        background: 'white',
+        border: '1px solid #E8EAF6',
+        borderRadius: 10,
+        padding: '12px 14px',
+        marginBottom: 16,
+        boxShadow: '0 1px 3px rgba(30,39,105,0.04)',
+        display: 'flex',
+        gap: 8,
+        flexWrap: 'wrap',
+        alignItems: 'center',
+      }}>
+        <FocusInput
           type="text"
           placeholder={`${t('search', language)}...`}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #E5E7EB', fontSize: '0.8rem', width: 200, outline: 'none' }}
+          style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #E8EAF6', fontSize: '0.8rem', width: 200 }}
         />
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #E5E7EB', fontSize: '0.8rem', background: 'white', cursor: 'pointer' }}>
+        <FocusSelect value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #E8EAF6', fontSize: '0.8rem', background: 'white', cursor: 'pointer' }}>
           <option value="all">{t('all', language)} {t('status', language)}</option>
           {STATUSES.map((s) => <option key={s} value={s}>{t(s, language)}</option>)}
-        </select>
-        <select value={filterRegion} onChange={(e) => setFilterRegion(e.target.value)} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #E5E7EB', fontSize: '0.8rem', background: 'white', cursor: 'pointer' }}>
+        </FocusSelect>
+        <FocusSelect value={filterRegion} onChange={(e) => setFilterRegion(e.target.value)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #E8EAF6', fontSize: '0.8rem', background: 'white', cursor: 'pointer' }}>
           <option value="all">{t('all', language)} {t('region', language)}</option>
           {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
-        </select>
-        <select value={filterLang} onChange={(e) => setFilterLang(e.target.value)} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #E5E7EB', fontSize: '0.8rem', background: 'white', cursor: 'pointer' }}>
+        </FocusSelect>
+        <FocusSelect value={filterLang} onChange={(e) => setFilterLang(e.target.value)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #E8EAF6', fontSize: '0.8rem', background: 'white', cursor: 'pointer' }}>
           <option value="all">EN + FR</option>
           <option value="EN">EN</option>
           <option value="FR">FR</option>
-        </select>
-        <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #E5E7EB', fontSize: '0.75rem' }} />
-        <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>→</span>
-        <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #E5E7EB', fontSize: '0.75rem' }} />
+        </FocusSelect>
+        <FocusInput type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={{ padding: '5px 8px', borderRadius: 8, border: '1px solid #E8EAF6', fontSize: '0.75rem' }} />
+        <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>→</span>
+        <FocusInput type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={{ padding: '5px 8px', borderRadius: 8, border: '1px solid #E8EAF6', fontSize: '0.75rem' }} />
         {(search || filterStatus !== 'all' || filterRegion !== 'all' || filterLang !== 'all' || filterOffice || dateFrom || dateTo) && (
           <button onClick={() => { setSearch(''); setFilterStatus('all'); setFilterRegion('all'); setFilterLang('all'); setFilterOffice(''); setDateFrom(''); setDateTo('') }}
-            style={{ padding: '5px 10px', fontSize: '0.75rem', borderRadius: 6, border: '1px solid #E5E7EB', background: 'white', color: '#6B7280', cursor: 'pointer' }}>
+            style={{ padding: '5px 10px', fontSize: '0.75rem', borderRadius: 6, border: '1px solid #E8EAF6', background: 'white', color: '#64748B', cursor: 'pointer' }}>
             ✕ Clear
           </button>
         )}
       </div>
 
       {/* Count */}
-      <div style={{ fontSize: '0.75rem', color: '#9CA3AF', marginBottom: 12 }}>
+      <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: 12 }}>
         {filtered.length} {language === 'FR' ? 'candidat(e)s' : 'candidates'}
       </div>
 
       {/* Table */}
-      <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid #E5E7EB', background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+      <div style={{ overflowX: 'auto', borderRadius: 14, border: '1px solid #E8EAF6', background: 'white', boxShadow: '0 2px 8px rgba(30,39,105,0.06)' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
@@ -235,8 +333,20 @@ export default function Pipeline() {
               Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={canDelete ? 14 : 13} style={{ padding: '48px 24px', textAlign: 'center', color: '#9CA3AF', fontSize: '0.875rem' }}>
-                  {search ? t('noResults', language) : t('emptyPipeline', language)}
+                <td colSpan={canDelete ? 14 : 13}>
+                  <div style={{
+                    background: 'white',
+                    border: '2px dashed #E8EAF6',
+                    borderRadius: 14,
+                    padding: '60px 24px',
+                    textAlign: 'center',
+                    margin: 16,
+                  }}>
+                    <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>📋</div>
+                    <div style={{ color: '#94A3B8', fontSize: '0.875rem' }}>
+                      {search ? t('noResults', language) : t('emptyPipeline', language)}
+                    </div>
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -245,12 +355,12 @@ export default function Pipeline() {
                   key={c.id}
                   style={{ borderBottom: '1px solid #F3F4F6', background: idx % 2 === 0 ? 'white' : '#FAFAFA', cursor: 'pointer', transition: 'background 0.1s' }}
                   onClick={() => setOpenAddPanel(true, c.id)}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#FFF0F5')}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#F8F9FF')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = idx % 2 === 0 ? 'white' : '#FAFAFA')}
                 >
                   <td style={{ ...COL_STYLE, fontWeight: 500, color: '#111827' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-                      <span>{c.firstName} {c.lastName}{c.preferredName && <span style={{ color: '#9CA3AF', fontWeight: 400 }}> ({c.preferredName})</span>}</span>
+                      <span>{c.firstName} {c.lastName}{c.preferredName && <span style={{ color: '#94A3B8', fontWeight: 400 }}> ({c.preferredName})</span>}</span>
                       {c.isHistorical && (
                         <span title={language === 'FR' ? 'Enregistrement historique' : 'Historical record'} style={{ fontSize: '0.58rem', background: '#EFF6FF', color: '#1E40AF', borderRadius: 4, padding: '1px 5px', fontWeight: 700, whiteSpace: 'nowrap', border: '1px solid #BFDBFE' }}>
                           {language === 'FR' ? 'HIST' : 'HIST'}
@@ -290,7 +400,7 @@ export default function Pipeline() {
                   <td style={{ ...COL_STYLE, textAlign: 'center' }}>
                     {c.isRehire ? <span style={{ color: '#059669', fontSize: '0.7rem', fontWeight: 700 }}>✓</span> : <span style={{ color: '#D1D5DB' }}>—</span>}
                   </td>
-                  <td style={{ ...COL_STYLE, fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.75rem', color: '#6B7280' }}>
+                  <td style={{ ...COL_STYLE, fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.75rem', color: '#64748B' }}>
                     {c.payrollId || <span style={{ color: '#D1D5DB' }}>—</span>}
                   </td>
                   <td style={{ ...COL_STYLE, textAlign: 'center' }}>

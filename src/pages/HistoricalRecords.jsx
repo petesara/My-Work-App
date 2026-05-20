@@ -77,7 +77,7 @@ export default function HistoricalRecords() {
     <div style={{ padding: 24 }}>
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#111827', margin: 0 }}>
+        <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1E2769', margin: 0, letterSpacing: '-0.02em' }}>
           {FR ? 'Données historiques' : 'Historical Records'}
         </h1>
         <div style={{ display: 'flex', gap: 20, marginTop: 8, fontSize: '0.75rem', color: '#6B7280', flexWrap: 'wrap' }}>

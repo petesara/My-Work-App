@@ -352,7 +352,7 @@ export default function UserProfiles() {
     <div style={{ padding: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#111827', margin: 0 }}>
+          <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1E2769', margin: 0, letterSpacing: '-0.02em' }}>
             {FR ? 'Profils utilisateurs' : 'User Profiles'}
           </h1>
           <p style={{ fontSize: '0.8rem', color: '#9CA3AF', margin: '4px 0 0' }}>
