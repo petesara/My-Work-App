@@ -36,7 +36,7 @@ export default function Layout({ children }) {
   }, [role, location.pathname, openAddPanel, navigate, setOpenAddPanel])
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F5F3F0' }}>
+    <div style={{ minHeight: '100vh', background: '#F4F5FB' }}>
       <Header />
       <Sidebar />
       <main

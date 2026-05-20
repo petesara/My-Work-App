@@ -98,7 +98,7 @@ function OnboardingRow({ candidate, language, role }) {
 
   const checkboxStyle = (disabled) => ({
     width: 14, height: 14,
-    accentColor: '#CF2B1A',
+    accentColor: '#F0194A',
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.5 : 1,
   })
@@ -225,7 +225,7 @@ function OnboardingRow({ candidate, language, role }) {
                   </div>
                   <div>
                     <div style={{ color: '#9CA3AF', fontSize: '0.65rem', marginBottom: 2 }}>{t('password', language)}</div>
-                    <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontWeight: 700, color: '#CF2B1A', letterSpacing: '0.15em' }}>{candidate.password}</div>
+                    <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontWeight: 700, color: '#F0194A', letterSpacing: '0.15em' }}>{candidate.password}</div>
                   </div>
                   <div>
                     <div style={{ color: '#9CA3AF', fontSize: '0.65rem', marginBottom: 2 }}>{t('payrollId', language)}</div>
@@ -461,9 +461,9 @@ export default function OnboardingTracker() {
   const filterBtnStyle = (active) => ({
     padding: '5px 12px', fontSize: '0.75rem',
     fontWeight: active ? 600 : 400, borderRadius: 6,
-    border: active ? '1.5px solid #CF2B1A' : '1px solid #E5E7EB',
-    background: active ? '#FFF5F5' : 'white',
-    color: active ? '#CF2B1A' : '#374151',
+    border: active ? '1.5px solid #F0194A' : '1px solid #E5E7EB',
+    background: active ? '#FFF0F5' : 'white',
+    color: active ? '#F0194A' : '#374151',
     cursor: 'pointer', whiteSpace: 'nowrap',
   })
 
@@ -483,7 +483,7 @@ export default function OnboardingTracker() {
         {FILTER_OPTIONS.map((f) => (
           <button key={f} onClick={() => setFilter(f)} style={filterBtnStyle(filter === f)}>
             {t(f, language)}
-            <span style={{ marginLeft: 4, fontSize: '0.65rem', background: filter === f ? '#CF2B1A' : '#F3F4F6', color: filter === f ? 'white' : '#6B7280', borderRadius: 10, padding: '1px 5px' }}>
+            <span style={{ marginLeft: 4, fontSize: '0.65rem', background: filter === f ? '#F0194A' : '#F3F4F6', color: filter === f ? 'white' : '#6B7280', borderRadius: 10, padding: '1px 5px' }}>
               {counts[f]}
             </span>
           </button>

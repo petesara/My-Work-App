@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import useStore from './store/useStore'
+import BrandLogo from './components/BrandLogo'
 import Landing from './pages/Landing'
 import Pipeline from './pages/Pipeline'
 import OnboardingTracker from './pages/OnboardingTracker'
@@ -28,23 +29,23 @@ export default function App() {
 
   if (!initialized) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0D1117', gap: 16 }}>
-        <div style={{ color: '#CF2B1A', fontSize: '1.5rem', fontWeight: 700, fontFamily: 'IBM Plex Mono, monospace', letterSpacing: '0.1em' }}>ATS</div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#1E2769', gap: 20 }}>
+        <BrandLogo language={language} size="lg" />
         {initError ? (
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ color: '#EF4444', fontFamily: 'IBM Plex Sans, sans-serif', fontSize: '0.875rem', marginBottom: 12 }}>
+          <div style={{ textAlign: 'center', marginTop: 8 }}>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontFamily: 'IBM Plex Sans, sans-serif', fontSize: '0.875rem', marginBottom: 12 }}>
               {language === 'FR' ? 'Impossible de se connecter au serveur.' : 'Could not connect to server.'}
             </div>
             <button
               onClick={() => initializeFromServer()}
-              style={{ background: '#CF2B1A', color: 'white', border: 'none', borderRadius: 8, padding: '8px 20px', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }}
+              style={{ background: '#F0194A', color: 'white', border: 'none', borderRadius: 8, padding: '8px 24px', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer' }}
             >
               {language === 'FR' ? 'Réessayer' : 'Retry'}
             </button>
           </div>
         ) : (
-          <div style={{ color: '#8B949E', fontFamily: 'IBM Plex Sans, sans-serif', fontSize: '0.8rem' }}>
-            {language === 'FR' ? 'Chargement...' : 'Loading data...'}
+          <div style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.72rem', letterSpacing: '0.08em' }}>
+            {language === 'FR' ? 'Chargement...' : 'Loading...'}
           </div>
         )}
       </div>

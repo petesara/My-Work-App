@@ -352,7 +352,7 @@ export default function ImportModal({ onClose }) {
   }
 
   const rowStatusStyle = (row) => {
-    if (row._isDnh) return { background: '#FEE2E2', color: '#991B1B', padding: '2px 8px', borderRadius: 10, fontSize: '0.7rem', fontWeight: 700 }
+    if (row._isDnh) return { background: '#FFD6E0', color: '#991B1B', padding: '2px 8px', borderRadius: 10, fontSize: '0.7rem', fontWeight: 700 }
     if (row._isDuplicate) return { background: '#FEF3C7', color: '#92400E', padding: '2px 8px', borderRadius: 10, fontSize: '0.7rem', fontWeight: 700 }
     return { background: '#D1FAE5', color: '#065F46', padding: '2px 8px', borderRadius: 10, fontSize: '0.7rem', fontWeight: 700 }
   }
@@ -419,8 +419,8 @@ export default function ImportModal({ onClose }) {
                 flex: 1, padding: '11px 16px', fontSize: '0.8rem',
                 fontWeight: activeTab === tab.key ? 700 : 400,
                 background: 'none', border: 'none',
-                borderBottom: activeTab === tab.key ? '2px solid #CF2B1A' : '2px solid transparent',
-                color: activeTab === tab.key ? '#CF2B1A' : '#6B7280',
+                borderBottom: activeTab === tab.key ? '2px solid #F0194A' : '2px solid transparent',
+                color: activeTab === tab.key ? '#F0194A' : '#6B7280',
                 cursor: 'pointer', transition: 'all 0.15s',
               }}
             >
@@ -574,7 +574,7 @@ export default function ImportModal({ onClose }) {
                       <tr
                         key={i}
                         style={{
-                          background: !checked[i] ? '#F9FAFB' : row._isDnh ? '#FFF5F5' : row._isDuplicate ? '#FFFBEB' : '#fff',
+                          background: !checked[i] ? '#F9FAFB' : row._isDnh ? '#FFF0F5' : row._isDuplicate ? '#FFFBEB' : '#fff',
                           opacity: checked[i] ? 1 : 0.5,
                         }}
                       >
@@ -617,7 +617,7 @@ export default function ImportModal({ onClose }) {
               <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: '0.7rem', color: '#6B7280' }}>
                 <span><span style={{ background: '#D1FAE5', color: '#065F46', padding: '1px 6px', borderRadius: 8, fontWeight: 600 }}>OK</span> {isFR ? 'Prêt à importer' : 'Ready to import'}</span>
                 <span><span style={{ background: '#FEF3C7', color: '#92400E', padding: '1px 6px', borderRadius: 8, fontWeight: 600 }}>{isFR ? 'Doublon' : 'Duplicate'}</span> {isFR ? 'Enregistrement existant' : 'Existing record'}</span>
-                <span><span style={{ background: '#FEE2E2', color: '#991B1B', padding: '1px 6px', borderRadius: 8, fontWeight: 600 }}>DNH</span> {isFR ? 'Liste Ne pas embaucher' : 'Do Not Hire list'}</span>
+                <span><span style={{ background: '#FFD6E0', color: '#991B1B', padding: '1px 6px', borderRadius: 8, fontWeight: 600 }}>DNH</span> {isFR ? 'Liste Ne pas embaucher' : 'Do Not Hire list'}</span>
               </div>
             </div>
           )}
@@ -653,7 +653,7 @@ export default function ImportModal({ onClose }) {
                 onClick={handleImport}
                 disabled={checkedCount === 0}
                 style={{
-                  background: checkedCount === 0 ? '#E5E7EB' : '#CF2B1A',
+                  background: checkedCount === 0 ? '#E5E7EB' : '#F0194A',
                   color: checkedCount === 0 ? '#9CA3AF' : '#fff',
                   border: 'none', borderRadius: 8,
                   padding: '9px 20px', fontWeight: 700,

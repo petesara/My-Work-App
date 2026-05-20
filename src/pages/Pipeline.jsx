@@ -96,9 +96,9 @@ export default function Pipeline() {
     fontSize: '0.75rem',
     fontWeight: 500,
     borderRadius: 6,
-    border: active ? '1.5px solid #CF2B1A' : '1px solid #E5E7EB',
-    background: active ? '#FFF5F5' : 'white',
-    color: active ? '#CF2B1A' : '#374151',
+    border: active ? '1.5px solid #F0194A' : '1px solid #E5E7EB',
+    background: active ? '#FFF0F5' : 'white',
+    color: active ? '#F0194A' : '#374151',
     cursor: 'pointer',
     transition: 'all 0.1s',
   })
@@ -137,7 +137,7 @@ export default function Pipeline() {
             </button>
             <button
               onClick={() => setOpenAddPanel(true)}
-              style={{ background: '#CF2B1A', color: 'white', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+              style={{ background: '#F0194A', color: 'white', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
             >
               + {t('addCandidate', language)}
               <span style={{ fontSize: '0.65rem', opacity: 0.7, fontFamily: 'IBM Plex Mono, monospace', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 3, padding: '1px 4px' }}>N</span>
@@ -158,13 +158,13 @@ export default function Pipeline() {
             onClick={() => setTab(key)}
             style={{
               padding: '8px 18px', fontSize: '0.825rem', fontWeight: tab === key ? 700 : 400,
-              background: 'none', border: 'none', borderBottom: tab === key ? '2px solid #CF2B1A' : '2px solid transparent',
-              color: tab === key ? '#CF2B1A' : '#6B7280', cursor: 'pointer', marginBottom: -2,
+              background: 'none', border: 'none', borderBottom: tab === key ? '2px solid #F0194A' : '2px solid transparent',
+              color: tab === key ? '#F0194A' : '#6B7280', cursor: 'pointer', marginBottom: -2,
               transition: 'all 0.15s',
             }}
           >
             {label}
-            <span style={{ marginLeft: 6, fontSize: '0.7rem', background: tab === key ? '#FFF5F5' : '#F3F4F6', color: tab === key ? '#CF2B1A' : '#9CA3AF', borderRadius: 10, padding: '1px 6px', fontWeight: 600 }}>
+            <span style={{ marginLeft: 6, fontSize: '0.7rem', background: tab === key ? '#FFF0F5' : '#F3F4F6', color: tab === key ? '#F0194A' : '#9CA3AF', borderRadius: 10, padding: '1px 6px', fontWeight: 600 }}>
               {count}
             </span>
           </button>
@@ -245,7 +245,7 @@ export default function Pipeline() {
                   key={c.id}
                   style={{ borderBottom: '1px solid #F3F4F6', background: idx % 2 === 0 ? 'white' : '#FAFAFA', cursor: 'pointer', transition: 'background 0.1s' }}
                   onClick={() => setOpenAddPanel(true, c.id)}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#FFF5F5')}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#FFF0F5')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = idx % 2 === 0 ? 'white' : '#FAFAFA')}
                 >
                   <td style={{ ...COL_STYLE, fontWeight: 500, color: '#111827' }}>
@@ -262,7 +262,7 @@ export default function Pipeline() {
                         </span>
                       )}
                       {c.status === 'Hired' && !c.username && !c.isHistorical && (
-                        <span title={language === 'FR' ? 'Profil utilisateur manquant' : 'User profile missing'} style={{ fontSize: '0.58rem', background: '#FEE2E2', color: '#CF2B1A', borderRadius: 4, padding: '1px 5px', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                        <span title={language === 'FR' ? 'Profil utilisateur manquant' : 'User profile missing'} style={{ fontSize: '0.58rem', background: '#FFD6E0', color: '#F0194A', borderRadius: 4, padding: '1px 5px', fontWeight: 700, whiteSpace: 'nowrap' }}>
                           ⚠ {language === 'FR' ? 'Profil' : 'Profile'}
                         </span>
                       )}

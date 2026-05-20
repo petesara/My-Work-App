@@ -61,7 +61,7 @@ function ProfileCard({ candidate, language }) {
 
   return (
     <div style={{
-      background: 'white', borderRadius: 10, border: '2px solid #FEE2E2',
+      background: 'white', borderRadius: 10, border: '2px solid #FFD6E0',
       marginBottom: 10, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
     }}>
       <div
@@ -70,7 +70,7 @@ function ProfileCard({ candidate, language }) {
         onMouseEnter={(e) => (e.currentTarget.style.background = '#FFFBEB')}
         onMouseLeave={(e) => (e.currentTarget.style.background = 'white')}
       >
-        <div style={{ flex: '0 0 auto', width: 32, height: 32, borderRadius: '50%', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#CF2B1A' }}>
+        <div style={{ flex: '0 0 auto', width: 32, height: 32, borderRadius: '50%', background: '#FFD6E0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#F0194A' }}>
           {(candidate.firstName[0] || '') + (candidate.lastName[0] || '')}
         </div>
         <div style={{ flex: 1 }}>
@@ -91,7 +91,7 @@ function ProfileCard({ candidate, language }) {
               {FR ? 'No ID paie' : 'No Payroll ID'}
             </span>
           )}
-          <span style={{ fontSize: '0.65rem', background: '#FEE2E2', color: '#CF2B1A', padding: '2px 8px', borderRadius: 8, fontWeight: 600 }}>
+          <span style={{ fontSize: '0.65rem', background: '#FFD6E0', color: '#F0194A', padding: '2px 8px', borderRadius: 8, fontWeight: 600 }}>
             {FR ? 'Profil manquant' : 'No Profile'}
           </span>
           <span style={{ color: '#9CA3AF', fontSize: '0.8rem' }}>{expanded ? '▴' : '▾'}</span>
@@ -127,7 +127,7 @@ function ProfileCard({ candidate, language }) {
               </label>
               <input
                 readOnly
-                style={{ ...inp(false), fontFamily: 'IBM Plex Mono, monospace', background: '#F3F4F6', fontWeight: 700, letterSpacing: '0.25em', fontSize: '1rem', color: '#CF2B1A', cursor: 'default' }}
+                style={{ ...inp(false), fontFamily: 'IBM Plex Mono, monospace', background: '#F3F4F6', fontWeight: 700, letterSpacing: '0.25em', fontSize: '1rem', color: '#F0194A', cursor: 'default' }}
                 value={password}
               />
               <div style={{ fontSize: '0.65rem', color: '#9CA3AF', marginTop: 2 }}>
@@ -152,9 +152,9 @@ function ProfileCard({ candidate, language }) {
           </div>
           <button
             onClick={handleSave}
-            style={{ padding: '8px 20px', background: '#CF2B1A', color: 'white', border: 'none', borderRadius: 7, fontSize: '0.825rem', fontWeight: 600, cursor: 'pointer' }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#B02516')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = '#CF2B1A')}
+            style={{ padding: '8px 20px', background: '#F0194A', color: 'white', border: 'none', borderRadius: 7, fontSize: '0.825rem', fontWeight: 600, cursor: 'pointer' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#C9123A')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#F0194A')}
           >
             {FR ? 'Créer le profil' : 'Create Profile'} →
           </button>
@@ -224,7 +224,7 @@ function CreatedCard({ candidate, language }) {
           <div style={{ fontSize: '0.68rem', color: '#6B7280', marginTop: 1 }}>
             <span style={{ fontFamily: 'IBM Plex Mono, monospace', color: '#059669', fontWeight: 700 }}>{candidate.username}</span>
             {' · '}
-            <span style={{ fontFamily: 'IBM Plex Mono, monospace', color: '#CF2B1A', letterSpacing: '0.1em' }}>{candidate.password}</span>
+            <span style={{ fontFamily: 'IBM Plex Mono, monospace', color: '#F0194A', letterSpacing: '0.1em' }}>{candidate.password}</span>
             {' · '}
             {FR ? 'ID paie' : 'Payroll'}: <strong style={{ fontFamily: 'IBM Plex Mono, monospace' }}>{candidate.payrollId || '—'}</strong>
           </div>
@@ -290,7 +290,7 @@ function CreatedCard({ candidate, language }) {
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   onClick={handleSave}
-                  style={{ padding: '6px 16px', background: '#CF2B1A', color: 'white', border: 'none', borderRadius: 6, fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
+                  style={{ padding: '6px 16px', background: '#F0194A', color: 'white', border: 'none', borderRadius: 6, fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
                 >
                   {FR ? 'Enregistrer' : 'Save'}
                 </button>
@@ -305,7 +305,7 @@ function CreatedCard({ candidate, language }) {
           ) : (
             <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: '0.78rem' }}>
               <div><span style={{ color: '#9CA3AF' }}>{t('username', language)}: </span><strong style={{ fontFamily: 'IBM Plex Mono, monospace' }}>{candidate.username}</strong></div>
-              <div><span style={{ color: '#9CA3AF' }}>{t('password', language)}: </span><strong style={{ fontFamily: 'IBM Plex Mono, monospace', color: '#CF2B1A', letterSpacing: '0.15em' }}>{candidate.password}</strong></div>
+              <div><span style={{ color: '#9CA3AF' }}>{t('password', language)}: </span><strong style={{ fontFamily: 'IBM Plex Mono, monospace', color: '#F0194A', letterSpacing: '0.15em' }}>{candidate.password}</strong></div>
               <div><span style={{ color: '#9CA3AF' }}>{t('payrollId', language)}: </span><strong style={{ fontFamily: 'IBM Plex Mono, monospace' }}>{candidate.payrollId || '—'}</strong></div>
               <div><span style={{ color: '#9CA3AF' }}>{t('officeCode', language)}: </span><strong>{candidate.officeCode || '—'}</strong></div>
               <div><span style={{ color: '#9CA3AF' }}>{t('manager', language)}: </span><strong>{candidate.manager || '—'}</strong></div>
@@ -372,10 +372,10 @@ export default function UserProfiles() {
       {filteredNeeds.length > 0 && (
         <div style={{ marginBottom: 28 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <h2 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#CF2B1A', margin: 0 }}>
+            <h2 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#F0194A', margin: 0 }}>
               ⚠ {FR ? 'Profil requis' : 'Profile Required'}
             </h2>
-            <span style={{ background: '#FEE2E2', color: '#CF2B1A', fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 10 }}>{filteredNeeds.length}</span>
+            <span style={{ background: '#FFD6E0', color: '#F0194A', fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 10 }}>{filteredNeeds.length}</span>
           </div>
           {filteredNeeds.map((c) => <ProfileCard key={c.id} candidate={c} language={language} />)}
         </div>

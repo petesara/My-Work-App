@@ -4,7 +4,7 @@ import { t } from '../data/translations'
 const STATUS_STYLES = {
   Pending:        { color: '#92400E', background: '#FEF3C7', border: '#F59E0B' },
   Hired:          { color: '#065F46', background: '#D1FAE5', border: '#10B981' },
-  Rejected:       { color: '#991B1B', background: '#FEE2E2', border: '#EF4444' },
+  Rejected:       { color: '#991B1B', background: '#FFD6E0', border: '#EF4444' },
   'No Show':      { color: '#374151', background: '#F3F4F6', border: '#9CA3AF' },
   'Follow-up':    { color: '#1E40AF', background: '#DBEAFE', border: '#3B82F6' },
   '2nd Interview':{ color: '#5B21B6', background: '#EDE9FE', border: '#8B5CF6' },
