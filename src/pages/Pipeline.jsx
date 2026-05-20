@@ -26,6 +26,7 @@ export default function Pipeline() {
   const role = useStore((s) => s.role)
   const candidates = useStore((s) => s.candidates)
   const updateCandidate = useStore((s) => s.updateCandidate)
+  const deleteCandidate = useStore((s) => s.deleteCandidate)
   const addToast = useStore((s) => s.addToast)
   const openAddPanel = useStore((s) => s.openAddPanel)
   const setOpenAddPanel = useStore((s) => s.setOpenAddPanel)
@@ -54,6 +55,15 @@ export default function Pipeline() {
   }
 
   const canAdd = role === 'recruitment' || role === 'operations'
+  const canDelete = role === 'recruitment' || role === 'admin'
+
+  const handleDelete = (e, c) => {
+    e.stopPropagation()
+    const name = `${c.firstName} ${c.lastName}`
+    if (!window.confirm(language === 'FR' ? `Supprimer ${name} ?` : `Delete ${name}?`)) return
+    deleteCandidate(c.id)
+    addToast(language === 'FR' ? 'Candidat supprimé' : 'Candidate deleted', 'success')
+  }
 
   const activeOnly = candidates.filter(c => !c.isHistorical)
   const historicalCount = candidates.filter(c => c.isHistorical).length
@@ -217,6 +227,7 @@ export default function Pipeline() {
               <th style={TH_STYLE}>{t('isRehire', language)}</th>
               <th style={TH_STYLE}>{t('payrollId', language)}</th>
               <th style={{ ...TH_STYLE, textAlign: 'center' }}>⚠</th>
+              {canDelete && <th style={TH_STYLE} />}
             </tr>
           </thead>
           <tbody>
@@ -224,7 +235,7 @@ export default function Pipeline() {
               Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={13} style={{ padding: '48px 24px', textAlign: 'center', color: '#9CA3AF', fontSize: '0.875rem' }}>
+                <td colSpan={canDelete ? 14 : 13} style={{ padding: '48px 24px', textAlign: 'center', color: '#9CA3AF', fontSize: '0.875rem' }}>
                   {search ? t('noResults', language) : t('emptyPipeline', language)}
                 </td>
               </tr>
@@ -285,6 +296,19 @@ export default function Pipeline() {
                   <td style={{ ...COL_STYLE, textAlign: 'center' }}>
                     {c.isDuplicate && <span style={{ color: '#EF4444', fontSize: '0.9rem' }}>⚠</span>}
                   </td>
+                  {canDelete && (
+                    <td style={{ ...COL_STYLE, textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={(e) => handleDelete(e, c)}
+                        title={language === 'FR' ? 'Supprimer' : 'Delete'}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D1D5DB', fontSize: '0.85rem', padding: '2px 6px', borderRadius: 4, transition: 'color 0.1s' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = '#EF4444')}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = '#D1D5DB')}
+                      >
+                        ✕
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))
             )}
