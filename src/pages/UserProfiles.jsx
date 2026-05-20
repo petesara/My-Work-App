@@ -329,7 +329,7 @@ export default function UserProfiles() {
   const [search, setSearch] = useState('')
   const FR = language === 'FR'
 
-  const hired = candidates.filter((c) => c.status === 'Hired')
+  const hired = candidates.filter((c) => c.status === 'Hired' && !c.isHistorical)
   const needsProfile = hired.filter((c) => !c.username)
   const hasProfile = hired.filter((c) => !!c.username)
 

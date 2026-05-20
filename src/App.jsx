@@ -8,6 +8,7 @@ import Reports from './pages/Reports'
 import DoNotHire from './pages/DoNotHire'
 import UserProfiles from './pages/UserProfiles'
 import Calendar from './pages/Calendar'
+import HistoricalRecords from './pages/HistoricalRecords'
 import Layout from './components/Layout'
 
 function ProtectedRoute({ children }) {
@@ -73,6 +74,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <Calendar />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/historical"
+        element={
+          <ProtectedRoute>
+            <HistoricalRecords />
           </ProtectedRoute>
         }
       />
