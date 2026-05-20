@@ -404,6 +404,7 @@ export default function OnboardingTracker() {
   const [search, setSearch] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [sortBy, setSortBy] = useState('newest')
 
   // Active hires: non-historical with username
   // + 2026 historical in-progress (POD not yet activated) — already active in the real system
@@ -434,6 +435,18 @@ export default function OnboardingTracker() {
       if (!`${c.firstName} ${c.lastName}`.toLowerCase().includes(q) && !(c.officeCode || '').toLowerCase().includes(q)) return false
     }
     return true
+  })
+
+  const getRefDate = (c) =>
+    c.onboarding?.adpSentAt || c.onboarding?.adpSentDate ||
+    c.hiredAt || c.createdAt || ''
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortBy === 'newest') return getRefDate(b).localeCompare(getRefDate(a))
+    if (sortBy === 'oldest') return getRefDate(a).localeCompare(getRefDate(b))
+    if (sortBy === 'name') return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
+    if (sortBy === 'office') return (a.officeCode || '').localeCompare(b.officeCode || '')
+    return 0
   })
 
   const counts = {
@@ -493,6 +506,12 @@ export default function OnboardingTracker() {
           <option value="">{t('all', language)} {t('officeCode', language)}</option>
           {OFFICES.map((o) => <option key={o.code} value={o.code}>{o.code} — {o.name}</option>)}
         </select>
+        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #E5E7EB', fontSize: '0.8rem', background: 'white', cursor: 'pointer' }}>
+          <option value="newest">{language === 'FR' ? '↓ Plus récents en premier' : '↓ Newest first'}</option>
+          <option value="oldest">{language === 'FR' ? '↑ Plus anciens en premier' : '↑ Oldest first'}</option>
+          <option value="name">{language === 'FR' ? 'A–Z Nom' : 'A–Z Name'}</option>
+          <option value="office">{language === 'FR' ? 'A–Z Bureau' : 'A–Z Office'}</option>
+        </select>
         <span style={{ fontSize: '0.72rem', color: '#9CA3AF', whiteSpace: 'nowrap' }}>
           {language === 'FR' ? 'Complété:' : 'Completed:'}
         </span>
@@ -538,12 +557,12 @@ export default function OnboardingTracker() {
       )}
 
       {/* Rows */}
-      {filtered.length === 0 ? (
+      {sorted.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '48px 24px', color: '#9CA3AF', fontSize: '0.875rem', background: 'white', borderRadius: 10, border: '1px solid #E5E7EB' }}>
           {hired.length === 0 ? t('emptyOnboarding', language) : (language === 'FR' ? 'Aucun résultat' : 'No results match your filters')}
         </div>
       ) : (
-        filtered.map((c) => (
+        sorted.map((c) => (
           <OnboardingRow key={c.id} candidate={c} language={language} role={role} />
         ))
       )}
