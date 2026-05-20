@@ -48,21 +48,18 @@ function HistoricalImportTab({ language, onClose }) {
     reader.readAsText(f)
   }
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (!preview) return
     setImporting(true)
-    // Use setTimeout to avoid blocking the UI for large imports
-    setTimeout(() => {
-      importHistoricalCandidates(preview.data)
-      addToast(
-        isFR
-          ? `${preview.toImport} enregistrements historiques importés.`
-          : `${preview.toImport} historical records imported.`,
-        'success'
-      )
-      setImporting(false)
-      onClose()
-    }, 50)
+    const count = await importHistoricalCandidates(preview.data)
+    addToast(
+      isFR
+        ? `${count} enregistrements historiques importés.`
+        : `${count} historical records imported.`,
+      'success'
+    )
+    setImporting(false)
+    onClose()
   }
 
   const statBox = (label, value, accent) => (

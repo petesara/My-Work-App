@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import useStore from './store/useStore'
 import Landing from './pages/Landing'
 import Pipeline from './pages/Pipeline'
@@ -18,6 +19,38 @@ function ProtectedRoute({ children }) {
 }
 
 export default function App() {
+  const initialized = useStore(s => s.initialized)
+  const initError = useStore(s => s.initError)
+  const initializeFromServer = useStore(s => s.initializeFromServer)
+  const language = useStore(s => s.language)
+
+  useEffect(() => { initializeFromServer() }, [])
+
+  if (!initialized) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0D1117', gap: 16 }}>
+        <div style={{ color: '#CF2B1A', fontSize: '1.5rem', fontWeight: 700, fontFamily: 'IBM Plex Mono, monospace', letterSpacing: '0.1em' }}>ATS</div>
+        {initError ? (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ color: '#EF4444', fontFamily: 'IBM Plex Sans, sans-serif', fontSize: '0.875rem', marginBottom: 12 }}>
+              {language === 'FR' ? 'Impossible de se connecter au serveur.' : 'Could not connect to server.'}
+            </div>
+            <button
+              onClick={() => initializeFromServer()}
+              style={{ background: '#CF2B1A', color: 'white', border: 'none', borderRadius: 8, padding: '8px 20px', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }}
+            >
+              {language === 'FR' ? 'Réessayer' : 'Retry'}
+            </button>
+          </div>
+        ) : (
+          <div style={{ color: '#8B949E', fontFamily: 'IBM Plex Sans, sans-serif', fontSize: '0.8rem' }}>
+            {language === 'FR' ? 'Chargement...' : 'Loading data...'}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
