@@ -250,7 +250,7 @@ export default function Pipeline() {
                           DNH
                         </span>
                       )}
-                      {c.status === 'Hired' && !c.username && (
+                      {c.status === 'Hired' && !c.username && !c.isHistorical && (
                         <span title={language === 'FR' ? 'Profil utilisateur manquant' : 'User profile missing'} style={{ fontSize: '0.58rem', background: '#FEE2E2', color: '#CF2B1A', borderRadius: 4, padding: '1px 5px', fontWeight: 700, whiteSpace: 'nowrap' }}>
                           ⚠ {language === 'FR' ? 'Profil' : 'Profile'}
                         </span>

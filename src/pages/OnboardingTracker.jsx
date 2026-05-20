@@ -406,7 +406,7 @@ export default function OnboardingTracker() {
   const [dateTo, setDateTo] = useState('')
 
   // Only show in onboarding after user profile has been created
-  const allHired = candidates.filter((c) => c.status === 'Hired')
+  const allHired = candidates.filter((c) => c.status === 'Hired' && !c.isHistorical)
   const awaitingProfile = allHired.filter((c) => !c.username)
   const hired = allHired.filter((c) => !!c.username)
 
