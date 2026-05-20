@@ -13,7 +13,7 @@
     {
       "binding": "DB",
       "database_name": "ats-db",
-      "database_id": "REPLACE_WITH_YOUR_DATABASE_ID",
+      "database_id": "4d2370fd-13f5-4a84-a75d-ef38ce9c4cab",
       "migrations_dir": "migrations"
     }
   ]
