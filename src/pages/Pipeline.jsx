@@ -33,6 +33,7 @@ export default function Pipeline() {
 
   const [loading, setLoading] = useState(true)
   const [showImport, setShowImport] = useState(false)
+  const [showHistorical, setShowHistorical] = useState(false)
   const [tab, setTab] = useState('all') // 'all' | 'new' | 'rehire'
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
@@ -54,10 +55,14 @@ export default function Pipeline() {
 
   const canAdd = role === 'recruitment' || role === 'operations'
 
-  const newCount = candidates.filter((c) => !c.isRehire).length
-  const rehireCount = candidates.filter((c) => c.isRehire).length
+  const activeOnly = candidates.filter(c => !c.isHistorical)
+  const historicalCount = candidates.filter(c => c.isHistorical).length
+  const displayBase = showHistorical ? candidates : activeOnly
 
-  const filtered = candidates.filter((c) => {
+  const newCount = displayBase.filter((c) => !c.isRehire).length
+  const rehireCount = displayBase.filter((c) => c.isRehire).length
+
+  const filtered = displayBase.filter((c) => {
     if (tab === 'new' && c.isRehire) return false
     if (tab === 'rehire' && !c.isRehire) return false
     if (search) {
@@ -93,8 +98,27 @@ export default function Pipeline() {
       {/* Top bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
         <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#111827', margin: 0 }}>{t('pipeline', language)}</h1>
-        {canAdd && (
-          <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          {historicalCount > 0 && (
+            <button
+              onClick={() => setShowHistorical(v => !v)}
+              title={showHistorical
+                ? (language === 'FR' ? 'Masquer les données historiques' : 'Hide historical records')
+                : (language === 'FR' ? 'Afficher les données historiques' : 'Show historical records')}
+              style={{
+                background: showHistorical ? '#EFF6FF' : 'white',
+                color: showHistorical ? '#1E40AF' : '#6B7280',
+                border: `1px solid ${showHistorical ? '#BFDBFE' : '#E5E7EB'}`,
+                borderRadius: 8, padding: '7px 14px', fontSize: '0.78rem', fontWeight: showHistorical ? 700 : 500, cursor: 'pointer',
+              }}
+            >
+              🕓 {showHistorical
+                ? (language === 'FR' ? `Historique (${historicalCount})` : `Historical (${historicalCount})`)
+                : (language === 'FR' ? `Voir historique (${historicalCount})` : `Show historical (${historicalCount})`)}
+            </button>
+          )}
+          {canAdd && (
+          <>
             <button
               onClick={() => setShowImport(true)}
               style={{ background: 'white', color: '#374151', border: '1px solid #D1D5DB', borderRadius: 8, padding: '8px 16px', fontSize: '0.875rem', fontWeight: 500, cursor: 'pointer' }}
@@ -108,14 +132,14 @@ export default function Pipeline() {
               + {t('addCandidate', language)}
               <span style={{ fontSize: '0.65rem', opacity: 0.7, fontFamily: 'IBM Plex Mono, monospace', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 3, padding: '1px 4px' }}>N</span>
             </button>
-          </div>
-        )}
+          </>)}
+        </div>
       </div>
 
       {/* New / Rehire tabs */}
       <div style={{ display: 'flex', gap: 0, marginBottom: 16, borderBottom: '2px solid #E5E7EB' }}>
         {[
-          { key: 'all', label: language === 'FR' ? 'Tous' : 'All', count: candidates.length },
+          { key: 'all', label: language === 'FR' ? 'Tous' : 'All', count: displayBase.length },
           { key: 'new', label: language === 'FR' ? 'Nouvelles embauches' : 'New Hires', count: newCount },
           { key: 'rehire', label: language === 'FR' ? 'Réembauches' : 'Rehires', count: rehireCount },
         ].map(({ key, label, count }) => (
@@ -216,12 +240,17 @@ export default function Pipeline() {
                   <td style={{ ...COL_STYLE, fontWeight: 500, color: '#111827' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
                       <span>{c.firstName} {c.lastName}{c.preferredName && <span style={{ color: '#9CA3AF', fontWeight: 400 }}> ({c.preferredName})</span>}</span>
+                      {c.isHistorical && (
+                        <span title={language === 'FR' ? 'Enregistrement historique' : 'Historical record'} style={{ fontSize: '0.58rem', background: '#EFF6FF', color: '#1E40AF', borderRadius: 4, padding: '1px 5px', fontWeight: 700, whiteSpace: 'nowrap', border: '1px solid #BFDBFE' }}>
+                          {language === 'FR' ? 'HIST' : 'HIST'}
+                        </span>
+                      )}
                       {c.isDNH && (
                         <span title={language === 'FR' ? 'Sur la liste Ne pas embaucher' : 'On Do Not Hire list'} style={{ fontSize: '0.58rem', background: '#DC2626', color: 'white', borderRadius: 4, padding: '1px 5px', fontWeight: 700, whiteSpace: 'nowrap' }}>
                           DNH
                         </span>
                       )}
-                      {c.status === 'Hired' && !c.username && (
+                      {c.status === 'Hired' && !c.username && !c.isHistorical && (
                         <span title={language === 'FR' ? 'Profil utilisateur manquant' : 'User profile missing'} style={{ fontSize: '0.58rem', background: '#FEE2E2', color: '#CF2B1A', borderRadius: 4, padding: '1px 5px', fontWeight: 700, whiteSpace: 'nowrap' }}>
                           ⚠ {language === 'FR' ? 'Profil' : 'Profile'}
                         </span>

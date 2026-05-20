@@ -1,15 +1,20 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "my-work-app",
+  "main": "worker/index.js",
   "compatibility_date": "2026-05-17",
-  "observability": {
-    "enabled": true
-  },
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application"
   },
-  "compatibility_flags": [
-    "nodejs_compat"
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ats-db",
+      "database_id": "4d2370fd-13f5-4a84-a75d-ef38ce9c4cab",
+      "migrations_dir": "migrations"
+    }
   ]
 }

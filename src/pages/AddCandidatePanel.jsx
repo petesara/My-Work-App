@@ -70,6 +70,8 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
   const [errors, setErrors] = useState({})
   const [duplicates, setDuplicates] = useState([])
   const [duplicateAction, setDuplicateAction] = useState(null)
+  const [historicalMatches, setHistoricalMatches] = useState([])
+  const [historicalAction, setHistoricalAction] = useState(null)
   const [dnhMatches, setDnhMatches] = useState([])
   const [dnhAcknowledged, setDnhAcknowledged] = useState(false)
   const [officeSearch, setOfficeSearch] = useState('')
@@ -100,6 +102,8 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
       setErrors({})
       setDuplicates([])
       setDuplicateAction(null)
+      setHistoricalMatches([])
+      setHistoricalAction(null)
       setDnhMatches([])
       setDnhAcknowledged(false)
     }
@@ -157,7 +161,8 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
     const emailLower = f.email.toLowerCase()
     const nameLower = (f.firstName + ' ' + f.lastName).toLowerCase().trim()
     if (!nameLower && !phoneDigits && !emailLower) return
-    const found = candidates.filter((c) => {
+
+    const matches = (c) => {
       if (isEdit && c.id === candidateId) return false
       const cPhone = (c.phone || '').replace(/\D/g, '')
       const cEmail = (c.email || '').toLowerCase()
@@ -166,8 +171,18 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
       if (emailLower && emailLower.includes('@') && cEmail === emailLower) return true
       if (nameLower.length > 3 && cName === nameLower && (phoneDigits || emailLower)) return true
       return false
+    }
+
+    const active = candidates.filter((c) => !c.isHistorical && matches(c))
+    setDuplicates(active)
+
+    const hist = candidates.filter((c) => {
+      if (!c.isHistorical) return false
+      const year = c.createdAt ? new Date(c.createdAt).getFullYear() : 0
+      return year >= 2024 && matches(c)
     })
-    setDuplicates(found)
+    setHistoricalMatches(hist)
+    if (hist.length > 0) setHistoricalAction(null)
   }
 
   const handleOfficeSelect = (office) => {
@@ -332,6 +347,53 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
         </div>
 
         <div style={{ padding: '20px', flex: 1, overflowY: 'auto' }}>
+
+          {/* Historical Match Warning (2024+) */}
+          {historicalMatches.length > 0 && historicalAction === null && duplicates.length === 0 && (
+            <div style={{ background: '#FFF7ED', border: '1px solid #FDBA74', borderRadius: 8, padding: '14px 16px', marginBottom: 20 }}>
+              <div style={{ fontWeight: 700, color: '#9A3412', fontSize: '0.875rem', marginBottom: 8 }}>
+                🕓 {FR ? 'Employé(e) précédent(e) détecté(e)' : 'Previous employee detected'}
+              </div>
+              {historicalMatches.map((d) => {
+                const year = d.createdAt ? new Date(d.createdAt).getFullYear() : '?'
+                const podAt = d.onboarding?.podActivatedAt ? new Date(d.onboarding.podActivatedAt).toLocaleDateString('en-CA') : null
+                return (
+                  <div key={d.id} style={{ fontSize: '0.75rem', color: '#7C2D12', marginBottom: 4, padding: '6px 10px', background: '#FFEDD5', borderRadius: 4, lineHeight: 1.6 }}>
+                    <strong>{d.firstName} {d.lastName}</strong>
+                    {d.officeCode && <span> · {d.officeCode}</span>}
+                    {d.payrollId && <span> · ID: <strong style={{ fontFamily: 'IBM Plex Mono, monospace' }}>{d.payrollId}</strong></span>}
+                    <span> · {FR ? 'Année' : 'Year'}: <strong>{year}</strong></span>
+                    {podAt && <span> · POD: {podAt}</span>}
+                  </div>
+                )
+              })}
+              <div style={{ fontSize: '0.72rem', color: '#9A3412', marginTop: 8, fontStyle: 'italic' }}>
+                {FR
+                  ? 'Cette personne a été embauchée récemment. Veuillez confirmer s\'il s\'agit d\'une réembauche.'
+                  : 'This person was hired recently. Please confirm if this is a rehire.'}
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => {
+                    const match = historicalMatches[0]
+                    if (match?.payrollId && !form.payrollId) setForm(f => ({ ...f, isRehire: 'yes', payrollId: match.payrollId }))
+                    else setForm(f => ({ ...f, isRehire: 'yes' }))
+                    setHistoricalAction('markedRehire')
+                  }}
+                  style={{ padding: '6px 12px', background: '#EA580C', color: 'white', border: 'none', borderRadius: 6, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  {FR ? 'Marquer comme réembauche' : 'Mark as Rehire'}
+                  {historicalMatches[0]?.payrollId && ` (ID: ${historicalMatches[0].payrollId})`}
+                </button>
+                <button
+                  onClick={() => setHistoricalAction('proceedNew')}
+                  style={{ padding: '6px 12px', background: '#374151', color: 'white', border: 'none', borderRadius: 6, fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  {FR ? 'Continuer comme nouveau(elle)' : 'Proceed as New'}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Duplicate Warning */}
           {duplicates.length > 0 && duplicateAction === null && (

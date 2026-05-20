@@ -9,11 +9,13 @@ const NAV_ITEMS = {
     { to: '/user-profiles', key: 'userProfiles', icon: '◎' },
     { to: '/do-not-hire', key: 'doNotHire', icon: '⊘' },
     { to: '/reports', key: 'reports', icon: '▣' },
+    { to: '/historical', key: 'historicalRecords', icon: '🕓' },
   ],
   admin: [
     { to: '/onboarding', key: 'onboarding', icon: '✦' },
     { to: '/managers', key: 'managerDirectory', icon: '◉' },
     { to: '/reports', key: 'reports', icon: '▣' },
+    { to: '/historical', key: 'historicalRecords', icon: '🕓' },
   ],
   operations: [
     { to: '/pipeline', key: 'pipeline', icon: '◈', shortcut: 'N' },

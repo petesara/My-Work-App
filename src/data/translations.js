@@ -12,6 +12,7 @@ export const translations = {
     userProfiles: 'User Profiles',
     calendar: 'Calendar',
     settings: 'Settings',
+    historicalRecords: 'Historical Records',
 
     // Statuses
     Pending: 'Pending',
@@ -167,6 +168,7 @@ export const translations = {
     userProfiles: 'Profils utilisateurs',
     calendar: 'Calendrier',
     settings: 'Paramètres',
+    historicalRecords: 'Données historiques',
 
     // Statuses
     Pending: 'En attente',
