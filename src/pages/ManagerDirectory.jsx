@@ -68,7 +68,7 @@ export default function ManagerDirectory() {
           onChange={(e) => setEditValue(e.target.value)}
           onBlur={() => saveEdit(code, field)}
           onKeyDown={(e) => handleKeyDown(e, code, field)}
-          style={{ width: '100%', padding: '4px 6px', borderRadius: 4, border: '1.5px solid #CF2B1A', fontSize: '0.85rem', outline: 'none', background: '#FFF5F5' }}
+          style={{ width: '100%', padding: '4px 6px', borderRadius: 4, border: '1.5px solid #F0194A', fontSize: '0.85rem', outline: 'none', background: '#FFF0F5' }}
         />
       )
     }
@@ -96,7 +96,7 @@ export default function ManagerDirectory() {
           <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#111827', margin: 0 }}>{t('managerDirectory', language)}</h1>
           <p style={{ fontSize: '0.8rem', color: '#9CA3AF', margin: '4px 0 0' }}>
             {filtered.length} {language === 'FR' ? 'bureaux' : 'offices'}
-            {canEdit && <span style={{ color: '#CF2B1A', marginLeft: 8 }}>· {language === 'FR' ? 'Cliquez sur un gestionnaire pour modifier' : 'Click a manager name to edit'}</span>}
+            {canEdit && <span style={{ color: '#F0194A', marginLeft: 8 }}>· {language === 'FR' ? 'Cliquez sur un gestionnaire pour modifier' : 'Click a manager name to edit'}</span>}
           </p>
         </div>
         <input

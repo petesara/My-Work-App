@@ -2,8 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useStore from '../store/useStore'
 import { t } from '../data/translations'
-
-const ROLE_LABELS = { recruitment: null, admin: null, operations: null }
+import BrandLogo from './BrandLogo'
 
 export default function Header() {
   const role = useStore((s) => s.role)
@@ -31,32 +30,27 @@ export default function Header() {
   }
 
   const rolePillColor = {
-    recruitment: '#1E40AF',
-    admin: '#065F46',
-    operations: '#92400E',
+    recruitment: '#2DCDB8',
+    admin: '#F0194A',
+    operations: '#8B5CF6',
   }[role] || '#374151'
 
   return (
     <header
-      style={{ background: '#0D1117', height: 56, zIndex: 100 }}
-      className="fixed top-0 left-0 right-0 flex items-center px-4 gap-4 shadow-md"
+      style={{ background: '#1E2769', height: 56, zIndex: 100, borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+      className="fixed top-0 left-0 right-0 flex items-center px-4 gap-4 shadow-lg"
     >
       {/* Logo */}
-      <div className="flex items-center gap-3 min-w-[180px]">
-        <span style={{ color: '#CF2B1A', fontWeight: 700, fontSize: '1.375rem', letterSpacing: '-0.02em' }}>
-          ATS
-        </span>
-        <span style={{ color: '#6B7280', fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-          Talent Pipeline
-        </span>
+      <div className="flex items-center min-w-[200px]">
+        <BrandLogo language={language} size="sm" />
       </div>
 
       {/* Center: role pill */}
       <div className="flex-1 flex justify-center">
         {role && (
           <span
-            style={{ background: rolePillColor, color: 'white', fontSize: '0.75rem', letterSpacing: '0.05em' }}
-            className="px-3 py-1 rounded-full font-medium uppercase"
+            style={{ background: rolePillColor, color: 'white', fontSize: '0.7rem', letterSpacing: '0.06em', fontWeight: 700 }}
+            className="px-3 py-1 rounded-full uppercase"
           >
             {t(role, language)}
           </span>
@@ -66,17 +60,17 @@ export default function Header() {
       {/* Right: language + role switcher */}
       <div className="flex items-center gap-2">
         {/* Language toggle */}
-        <div className="flex rounded overflow-hidden border border-gray-600">
+        <div className="flex rounded overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.2)' }}>
           {['EN', 'FR'].map((lang) => (
             <button
               key={lang}
               onClick={() => setLanguage(lang)}
               style={{
-                background: language === lang ? '#CF2B1A' : 'transparent',
-                color: language === lang ? 'white' : '#9CA3AF',
+                background: language === lang ? '#F0194A' : 'transparent',
+                color: language === lang ? 'white' : 'rgba(255,255,255,0.5)',
                 fontSize: '0.75rem',
-                fontWeight: 600,
-                padding: '4px 10px',
+                fontWeight: 700,
+                padding: '4px 12px',
                 border: 'none',
                 cursor: 'pointer',
                 transition: 'background 0.15s',
@@ -92,12 +86,12 @@ export default function Header() {
           <button
             onClick={() => setRoleDropdown((o) => !o)}
             style={{
-              background: '#1F2937',
-              color: '#D1D5DB',
+              background: 'rgba(255,255,255,0.1)',
+              color: 'rgba(255,255,255,0.8)',
               fontSize: '0.75rem',
               padding: '5px 12px',
               borderRadius: 6,
-              border: '1px solid #374151',
+              border: '1px solid rgba(255,255,255,0.15)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -109,8 +103,8 @@ export default function Header() {
           </button>
           {roleDropdown && (
             <div
-              style={{ background: '#1F2937', border: '1px solid #374151', top: '100%', right: 0, marginTop: 4 }}
-              className="absolute z-50 rounded-lg shadow-xl min-w-[160px] py-1"
+              style={{ background: '#1E2769', border: '1px solid rgba(255,255,255,0.15)', top: '100%', right: 0, marginTop: 4, boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}
+              className="absolute z-50 rounded-lg min-w-[160px] py-1"
             >
               {['recruitment', 'admin', 'operations'].map((r) => (
                 <button
@@ -122,19 +116,19 @@ export default function Header() {
                     textAlign: 'left',
                     padding: '8px 14px',
                     fontSize: '0.8rem',
-                    color: r === role ? '#CF2B1A' : '#D1D5DB',
+                    color: r === role ? '#2DCDB8' : 'rgba(255,255,255,0.75)',
                     background: 'transparent',
                     border: 'none',
                     cursor: 'pointer',
-                    fontWeight: r === role ? 600 : 400,
+                    fontWeight: r === role ? 700 : 400,
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#374151')}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
                   {t(r, language)}
                 </button>
               ))}
-              <div style={{ borderTop: '1px solid #374151', margin: '4px 0' }} />
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', margin: '4px 0' }} />
               <button
                 onClick={() => { setRole(null); setRoleDropdown(false); navigate('/') }}
                 style={{
@@ -143,12 +137,12 @@ export default function Header() {
                   textAlign: 'left',
                   padding: '8px 14px',
                   fontSize: '0.8rem',
-                  color: '#9CA3AF',
+                  color: 'rgba(255,255,255,0.4)',
                   background: 'transparent',
                   border: 'none',
                   cursor: 'pointer',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = '#374151')}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
                 {language === 'FR' ? '← Déconnexion' : '← Sign Out'}

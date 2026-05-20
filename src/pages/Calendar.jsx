@@ -7,7 +7,7 @@ import AddCandidatePanel from './AddCandidatePanel'
 const STATUS_STYLES = {
   Pending:         { color: '#92400E', background: '#FEF3C7', border: '#F59E0B' },
   Hired:           { color: '#065F46', background: '#D1FAE5', border: '#10B981' },
-  Rejected:        { color: '#991B1B', background: '#FEE2E2', border: '#EF4444' },
+  Rejected:        { color: '#991B1B', background: '#FFD6E0', border: '#EF4444' },
   'No Show':       { color: '#374151', background: '#F3F4F6', border: '#9CA3AF' },
   'Follow-up':     { color: '#1E40AF', background: '#DBEAFE', border: '#3B82F6' },
   '2nd Interview': { color: '#5B21B6', background: '#EDE9FE', border: '#8B5CF6' },
@@ -142,7 +142,7 @@ function OfficeSetup({ assignedOffices, setAssignedOffices, isFR }) {
             ◷ {isFR ? 'Mes bureaux' : 'My Offices'}
           </span>
           {assignedOffices.length > 0 ? (
-            <span style={{ fontSize: '0.72rem', fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: '#CF2B1A', color: 'white' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: '#F0194A', color: 'white' }}>
               {assignedOffices.length} {isFR ? 'sélectionné(s)' : 'selected'}
             </span>
           ) : (
@@ -195,9 +195,9 @@ function OfficeSetup({ assignedOffices, setAssignedOffices, isFR }) {
                           style={{
                             padding: '4px 10px', borderRadius: 6, fontSize: '0.72rem', fontWeight: selected ? 700 : 500,
                             cursor: 'pointer', userSelect: 'none',
-                            background: selected ? '#CF2B1A' : '#F9FAFB',
+                            background: selected ? '#F0194A' : '#F9FAFB',
                             color: selected ? 'white' : '#374151',
-                            border: selected ? '1px solid #CF2B1A' : '1px solid #E5E7EB',
+                            border: selected ? '1px solid #F0194A' : '1px solid #E5E7EB',
                             fontFamily: 'IBM Plex Mono, monospace',
                           }}
                         >
@@ -601,9 +601,9 @@ export default function Calendar() {
 
   const viewBtn = (v) => ({
     ...btnBase,
-    background: view === v ? '#CF2B1A' : 'white',
+    background: view === v ? '#F0194A' : 'white',
     color: view === v ? 'white' : '#374151',
-    border: view === v ? '1px solid #CF2B1A' : '1px solid #E5E7EB',
+    border: view === v ? '1px solid #F0194A' : '1px solid #E5E7EB',
     fontWeight: view === v ? 700 : 500,
   })
 
@@ -635,20 +635,20 @@ export default function Calendar() {
                   borderRight: (idx + 1) % 7 !== 0 ? '1px solid #F3F4F6' : 'none',
                   borderBottom: idx < 35 ? '1px solid #F3F4F6' : 'none',
                   padding: '6px 6px 4px',
-                  background: isToday ? '#FFF5F5' : isCurrentMonth ? 'white' : '#FAFAFA',
-                  outline: isToday ? '2px solid #CF2B1A' : 'none',
+                  background: isToday ? '#FFF0F5' : isCurrentMonth ? 'white' : '#FAFAFA',
+                  outline: isToday ? '2px solid #F0194A' : 'none',
                   outlineOffset: '-2px',
                   cursor: 'pointer',
                 }}
                 onMouseEnter={e => { if (!isToday) e.currentTarget.style.background = '#F9FAFB' }}
-                onMouseLeave={e => { e.currentTarget.style.background = isToday ? '#FFF5F5' : isCurrentMonth ? 'white' : '#FAFAFA' }}
+                onMouseLeave={e => { e.currentTarget.style.background = isToday ? '#FFF0F5' : isCurrentMonth ? 'white' : '#FAFAFA' }}
               >
-                <div style={{ textAlign: 'right', fontSize: '0.78rem', fontWeight: isToday ? 700 : 400, color: isToday ? '#CF2B1A' : isCurrentMonth ? '#111827' : '#D1D5DB', marginBottom: 4 }}>
+                <div style={{ textAlign: 'right', fontSize: '0.78rem', fontWeight: isToday ? 700 : 400, color: isToday ? '#F0194A' : isCurrentMonth ? '#111827' : '#D1D5DB', marginBottom: 4 }}>
                   {day.getDate()}
                 </div>
                 {dayCandidates.length > 0 && (
                   <div style={{ marginBottom: 3 }}>
-                    <span style={{ background: '#CF2B1A', color: 'white', borderRadius: 20, fontSize: '0.6rem', fontWeight: 700, padding: '1px 6px' }}>
+                    <span style={{ background: '#F0194A', color: 'white', borderRadius: 20, fontSize: '0.6rem', fontWeight: 700, padding: '1px 6px' }}>
                       {dayCandidates.length}
                     </span>
                   </div>
@@ -685,13 +685,13 @@ export default function Calendar() {
             <div key={ds} style={{ borderRight: i < 6 ? '1px solid #E5E7EB' : 'none', display: 'flex', flexDirection: 'column', minHeight: 480 }}>
               <div
                 onClick={() => goToDay(day)}
-                style={{ padding: '8px 6px', borderBottom: '1px solid #E5E7EB', textAlign: 'center', background: isToday ? '#FFF5F5' : '#F9FAFB', flexShrink: 0, cursor: 'pointer' }}
+                style={{ padding: '8px 6px', borderBottom: '1px solid #E5E7EB', textAlign: 'center', background: isToday ? '#FFF0F5' : '#F9FAFB', flexShrink: 0, cursor: 'pointer' }}
               >
-                <div style={{ fontSize: '0.65rem', color: isToday ? '#CF2B1A' : '#9CA3AF', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{DAY_SHORT[i]}</div>
-                <div style={{ fontSize: '0.95rem', fontWeight: isToday ? 800 : 500, color: isToday ? '#CF2B1A' : '#374151', marginTop: 1 }}>{day.getDate()}</div>
+                <div style={{ fontSize: '0.65rem', color: isToday ? '#F0194A' : '#9CA3AF', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{DAY_SHORT[i]}</div>
+                <div style={{ fontSize: '0.95rem', fontWeight: isToday ? 800 : 500, color: isToday ? '#F0194A' : '#374151', marginTop: 1 }}>{day.getDate()}</div>
                 {dayCandidates.length > 0 && (
                   <div style={{ marginTop: 3 }}>
-                    <span style={{ background: '#CF2B1A', color: 'white', borderRadius: 20, fontSize: '0.55rem', fontWeight: 700, padding: '1px 5px' }}>
+                    <span style={{ background: '#F0194A', color: 'white', borderRadius: 20, fontSize: '0.55rem', fontWeight: 700, padding: '1px 5px' }}>
                       {dayCandidates.length}
                     </span>
                   </div>
@@ -801,9 +801,9 @@ export default function Calendar() {
             {(role === 'recruitment' || role === 'operations') && (
               <button
                 onClick={() => setOpenAddPanel(true)}
-                style={{ background: '#CF2B1A', color: 'white', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#B02516')}
-                onMouseLeave={e => (e.currentTarget.style.background = '#CF2B1A')}
+                style={{ background: '#F0194A', color: 'white', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#C9123A')}
+                onMouseLeave={e => (e.currentTarget.style.background = '#F0194A')}
               >
                 + {isFR ? 'Ajouter candidat' : 'Add Candidate'}
               </button>

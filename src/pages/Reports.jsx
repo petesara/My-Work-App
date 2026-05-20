@@ -148,14 +148,14 @@ export default function Reports() {
   const sourceBreakdown = [...new Set(candidates.map((c) => c.source).filter(Boolean))].map((src) => ({
     label: src,
     count: filtered.filter((c) => c.source === src).length,
-    color: '#CF2B1A',
+    color: '#F0194A',
   })).sort((a, b) => b.count - a.count)
 
   const inputStyle = { padding: '6px 10px', borderRadius: 6, border: '1px solid #E5E7EB', fontSize: '0.8rem', outline: 'none', background: 'white' }
   const presetBtnStyle = (active) => ({
     padding: '5px 12px', fontSize: '0.75rem', fontWeight: active ? 600 : 400,
-    borderRadius: 6, border: active ? '1.5px solid #CF2B1A' : '1px solid #E5E7EB',
-    background: active ? '#FFF5F5' : 'white', color: active ? '#CF2B1A' : '#6B7280',
+    borderRadius: 6, border: active ? '1.5px solid #F0194A' : '1px solid #E5E7EB',
+    background: active ? '#FFF0F5' : 'white', color: active ? '#F0194A' : '#6B7280',
     cursor: 'pointer',
   })
 
@@ -306,7 +306,7 @@ export default function Reports() {
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'white')}
                   >
                     <td style={{ ...tdStyle(true), textAlign: 'left', paddingLeft: 20 }}>
-                      <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.8rem', color: '#CF2B1A', fontWeight: 700 }}>{r.region}</span>
+                      <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.8rem', color: '#F0194A', fontWeight: 700 }}>{r.region}</span>
                     </td>
                     <td style={tdStyle(true)}>{r.total}</td>
                     <td style={tdStyle(true, '#059669')}>{r.hired}</td>

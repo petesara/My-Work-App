@@ -34,13 +34,13 @@ export default function Sidebar() {
     <aside
       style={{
         width: 220,
-        background: '#161B22',
+        background: '#15205A',
         position: 'fixed',
         top: 56,
         left: 0,
         bottom: 0,
         zIndex: 90,
-        borderRight: '1px solid #21262D',
+        borderRight: '1px solid rgba(255,255,255,0.06)',
         overflowY: 'auto',
       }}
     >
@@ -56,35 +56,37 @@ export default function Sidebar() {
               padding: '10px 16px',
               fontSize: '0.875rem',
               fontWeight: isActive ? 600 : 400,
-              color: isActive ? '#CF2B1A' : '#8B949E',
-              background: isActive ? 'rgba(207,43,26,0.08)' : 'transparent',
-              borderLeft: isActive ? '3px solid #CF2B1A' : '3px solid transparent',
+              color: isActive ? '#2DCDB8' : 'rgba(255,255,255,0.5)',
+              background: isActive ? 'rgba(45,205,184,0.12)' : 'transparent',
+              borderLeft: isActive ? '3px solid #2DCDB8' : '3px solid transparent',
               textDecoration: 'none',
               transition: 'all 0.15s',
               userSelect: 'none',
             })}
             onMouseEnter={(e) => {
-              if (!e.currentTarget.style.borderLeftColor.includes('207')) {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-                e.currentTarget.style.color = '#C9D1D9'
+              const active = e.currentTarget.style.borderLeftColor.includes('45,205')
+              if (!active) {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.8)'
               }
             }}
             onMouseLeave={(e) => {
-              if (!e.currentTarget.style.borderLeftColor.includes('207')) {
+              const active = e.currentTarget.style.borderLeftColor.includes('45,205')
+              if (!active) {
                 e.currentTarget.style.background = 'transparent'
-                e.currentTarget.style.color = '#8B949E'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.5)'
               }
             }}
           >
-            <span style={{ fontSize: '0.9rem', opacity: 0.8 }}>{item.icon}</span>
+            <span style={{ fontSize: '0.9rem', opacity: 0.7 }}>{item.icon}</span>
             <span className="flex-1">{t(item.key, language)}</span>
             {item.shortcut && (
               <span
                 style={{
                   fontSize: '0.65rem',
-                  background: '#21262D',
-                  color: '#6E7681',
-                  border: '1px solid #30363D',
+                  background: 'rgba(255,255,255,0.08)',
+                  color: 'rgba(255,255,255,0.35)',
+                  border: '1px solid rgba(255,255,255,0.12)',
                   borderRadius: 4,
                   padding: '1px 5px',
                   fontFamily: 'IBM Plex Mono, monospace',
@@ -105,8 +107,8 @@ export default function Sidebar() {
           left: 0,
           right: 0,
           padding: '0 16px',
-          fontSize: '0.65rem',
-          color: '#30363D',
+          fontSize: '0.6rem',
+          color: 'rgba(255,255,255,0.2)',
           fontFamily: 'IBM Plex Mono, monospace',
         }}
       >

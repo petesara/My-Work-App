@@ -35,7 +35,7 @@ const EMPTY_FORM = {
 }
 
 function PhaseHeader({ number, title, owner, complete, pending }) {
-  const colors = { 1: '#CF2B1A', 2: '#3B82F6', 3: '#8B5CF6' }
+  const colors = { 1: '#F0194A', 2: '#3B82F6', 3: '#8B5CF6' }
   const color = colors[number]
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 8, borderBottom: `2px solid ${color}20` }}>
@@ -418,16 +418,16 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
             <div style={{ background: '#FEF2F2', border: '2px solid #EF4444', borderRadius: 8, padding: '14px 16px', marginBottom: 20 }}>
               <div style={{ fontWeight: 700, color: '#991B1B', fontSize: '0.875rem', marginBottom: 8 }}>🚫 {t('dnhWarning', language)}</div>
               {dnhMatches.map((d) => (
-                <div key={d.id} style={{ fontSize: '0.75rem', color: '#7F1D1D', marginBottom: 4, padding: '6px 8px', background: '#FEE2E2', borderRadius: 4 }}>
+                <div key={d.id} style={{ fontSize: '0.75rem', color: '#7F1D1D', marginBottom: 4, padding: '6px 8px', background: '#FFD6E0', borderRadius: 4 }}>
                   <strong>{d.name}</strong> · {t('reason', language)}: {d.reason} · {t('addedBy', language)}: {d.addedBy}
                 </div>
               ))}
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, cursor: 'pointer' }}>
-                <input type="checkbox" checked={dnhAcknowledged} onChange={(e) => setDnhAcknowledged(e.target.checked)} style={{ width: 14, height: 14, accentColor: '#CF2B1A' }} />
+                <input type="checkbox" checked={dnhAcknowledged} onChange={(e) => setDnhAcknowledged(e.target.checked)} style={{ width: 14, height: 14, accentColor: '#F0194A' }} />
                 <span style={{ fontSize: '0.75rem', color: '#991B1B', fontWeight: 600 }}>{t('iAcknowledge', language)}</span>
               </label>
               {dnhAcknowledged && (
-                <button onClick={handleSubmit} style={{ marginTop: 10, padding: '7px 18px', background: '#CF2B1A', color: 'white', border: 'none', borderRadius: 6, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}>
+                <button onClick={handleSubmit} style={{ marginTop: 10, padding: '7px 18px', background: '#F0194A', color: 'white', border: 'none', borderRadius: 6, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}>
                   {t('save', language)} →
                 </button>
               )}
@@ -435,7 +435,7 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
           )}
 
           {/* ══ PHASE 1 — RECRUITMENT INTAKE ══ */}
-          <div style={{ marginBottom: 24, padding: '16px', background: '#FAFAFA', borderRadius: 10, border: '1px solid #E5E7EB', borderLeft: '3px solid #CF2B1A' }}>
+          <div style={{ marginBottom: 24, padding: '16px', background: '#FAFAFA', borderRadius: 10, border: '1px solid #E5E7EB', borderLeft: '3px solid #F0194A' }}>
             <PhaseHeader
               number={1}
               title={FR ? 'Informations du candidat' : 'Candidate Intake'}
@@ -477,7 +477,7 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
                 <div style={{ display: 'flex', gap: 16, paddingTop: 6 }}>
                   {['EN', 'FR'].map((lang) => (
                     <label key={lang} style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }}>
-                      <input type="radio" name="langPref" value={lang} checked={form.languagePreference === lang} onChange={() => setField('languagePreference', lang)} style={{ accentColor: '#CF2B1A' }} />
+                      <input type="radio" name="langPref" value={lang} checked={form.languagePreference === lang} onChange={() => setField('languagePreference', lang)} style={{ accentColor: '#F0194A' }} />
                       {lang}
                     </label>
                   ))}
@@ -498,7 +498,7 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
               <div style={{ display: 'flex', gap: 20 }}>
                 {[{ val: 'yes', label: t('yes', language), color: '#D97706' }, { val: 'no', label: t('no', language), color: '#374151' }].map(({ val, label, color }) => (
                   <label key={val} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                    <input type="radio" name="isRehire" value={val} checked={form.isRehire === val} onChange={() => setField('isRehire', val)} style={{ accentColor: '#CF2B1A', width: 15, height: 15 }} />
+                    <input type="radio" name="isRehire" value={val} checked={form.isRehire === val} onChange={() => setField('isRehire', val)} style={{ accentColor: '#F0194A', width: 15, height: 15 }} />
                     <span style={{ fontSize: '0.9rem', fontWeight: 600, color }}>{label}</span>
                   </label>
                 ))}
@@ -643,7 +643,7 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
 
           {/* ══ PHASE 3 — USER PROFILE (info only) ══ */}
           {(form.status === 'Hired' || (isEdit && candidates.find(c => c.id === candidateId)?.status === 'Hired')) && (
-            <div style={{ marginBottom: 24, padding: '14px 16px', background: form.username ? '#F0FDF4' : '#FFF5F5', borderRadius: 10, border: `1px solid ${form.username ? '#BBF7D0' : '#FECACA'}`, borderLeft: '3px solid #8B5CF6' }}>
+            <div style={{ marginBottom: 24, padding: '14px 16px', background: form.username ? '#F0FDF4' : '#FFF0F5', borderRadius: 10, border: `1px solid ${form.username ? '#BBF7D0' : '#FECACA'}`, borderLeft: '3px solid #8B5CF6' }}>
               <PhaseHeader
                 number={3}
                 title={FR ? 'Profil utilisateur' : 'User Profile'}
@@ -659,7 +659,7 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
                   </div>
                   <div>
                     <div style={{ fontSize: '0.65rem', color: '#9CA3AF' }}>{t('password', language)}</div>
-                    <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontWeight: 700, color: '#CF2B1A', letterSpacing: '0.2em' }}>{form.password}</div>
+                    <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontWeight: 700, color: '#F0194A', letterSpacing: '0.2em' }}>{form.password}</div>
                   </div>
                 </div>
               ) : (
@@ -675,9 +675,9 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
           {/* Actions */}
           <div style={{ display: 'flex', gap: 10, paddingTop: 12, borderTop: '1px solid #F3F4F6', position: 'sticky', bottom: 0, background: 'white', marginTop: 8 }}>
             <button onClick={handleSubmit}
-              style={{ flex: 1, padding: '10px', background: '#CF2B1A', color: 'white', border: 'none', borderRadius: 8, fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#B02516')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = '#CF2B1A')}
+              style={{ flex: 1, padding: '10px', background: '#F0194A', color: 'white', border: 'none', borderRadius: 8, fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#C9123A')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = '#F0194A')}
             >
               {t('save', language)}
             </button>

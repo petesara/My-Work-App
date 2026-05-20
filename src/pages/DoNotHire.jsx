@@ -116,7 +116,7 @@ export default function DoNotHire() {
           </div>
           <form onSubmit={handleSubmit}>
             {/* Payroll ID first — triggers auto-lookup */}
-            <div style={{ marginBottom: 14, padding: '10px 14px', background: '#FFF5F5', borderRadius: 8, border: '1px solid #FECACA' }}>
+            <div style={{ marginBottom: 14, padding: '10px 14px', background: '#FFF0F5', borderRadius: 8, border: '1px solid #FECACA' }}>
               <label style={lbl}>{t('payrollId', language)} <span style={{ fontWeight: 400, textTransform: 'none', color: '#9CA3AF' }}>({FR ? 'Optionnel — auto-remplit' : 'Optional — auto-fills info'})</span></label>
               <input
                 value={form.payrollId}
@@ -202,7 +202,7 @@ export default function DoNotHire() {
               </td></tr>
             ) : (
               filtered.map((d, idx) => (
-                <tr key={d.id} style={{ borderBottom: '1px solid #F3F4F6', background: idx % 2 === 0 ? 'white' : '#FFF5F5' }}>
+                <tr key={d.id} style={{ borderBottom: '1px solid #F3F4F6', background: idx % 2 === 0 ? 'white' : '#FFF0F5' }}>
                   <td style={{ ...TD, fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.78rem', color: d.payrollId ? '#111827' : '#D1D5DB', fontWeight: d.payrollId ? 600 : 400 }}>
                     {d.payrollId || '—'}
                   </td>
