@@ -176,8 +176,29 @@ def make_candidate(first, last, phone, email, office, lang, is_rehire, payroll,
     }
 
 
+def get_record_year(row_vals, date_cols):
+    """Determine the year of a record from the first non-None date in given columns."""
+    for col in date_cols:
+        if col < len(row_vals):
+            d = fmt_date(row_vals[col])
+            if d:
+                try:
+                    return int(d[:4])
+                except (ValueError, TypeError):
+                    pass
+    return None
+
+
+def is_hired(pod, is_rehire):
+    """2025/2026 filter: only include if POD date set OR is a rehire."""
+    has_pod = pod and str(pod).strip().lower() not in ('', 'none', 'ghost')
+    return bool(has_pod) or is_rehire
+
+
 def extract_file1_newhires(wb):
-    """File 1 'New Hires' sheet — header row index 5, data from index 6"""
+    """File 1 'New Hires' sheet — header row index 5, data from index 6.
+    Covers Dec 2024 – mid 2026.
+    Rule: 2024 → include ALL; 2025/2026 → hired only (POD or rehire)."""
     sheet = wb['New Hires']
     rows = list(sheet.iter_rows(values_only=True))
     records = []
@@ -198,10 +219,12 @@ def extract_file1_newhires(wb):
             continue
 
         lang, is_rehire = parse_lang_rehire(lang_rehire_raw)
+        year = get_record_year(row, [10, 14, 3])  # adp_sent, day0, pod
 
-        has_pod = pod and pod not in ('Ghost', 'ghost')
-        if not has_pod and not is_rehire:
-            continue
+        if year and year >= 2025:
+            if not is_hired(pod, is_rehire):
+                continue
+        # 2024 or unknown year → include all
 
         first, last = split_name(name)
         rec = make_candidate(first, last, phone, email, office, lang, is_rehire,
@@ -214,7 +237,8 @@ def extract_file1_newhires(wb):
 
 
 def extract_file1_janjun2025(wb):
-    """File 1 'Jan - Jun 2025' — header row index 5, data from index 6
+    """File 1 'Jan - Jun 2025' — header row index 5, data from index 6.
+    All records are 2025 → hired only (POD or rehire).
     Col 2: POD, 3: Office, 4: Name, 5: Phone, 6: Email, 7: Lang/Rehire,
     8: PayrollID, 9: ADP Sent, 10: Charity, 11: Manager, 12: Day0, 14: Missing Docs"""
     sheet = wb['Jan - Jun 2025']
@@ -238,8 +262,7 @@ def extract_file1_janjun2025(wb):
             continue
 
         lang, is_rehire = parse_lang_rehire(lang_rehire_raw)
-        has_pod = bool(pod)
-        if not has_pod and not is_rehire:
+        if not is_hired(pod, is_rehire):
             continue
 
         first, last = split_name(name)
@@ -253,7 +276,8 @@ def extract_file1_janjun2025(wb):
 
 
 def extract_file1_dec2024(wb):
-    """File 1 'Dec 2024' — same layout as Jan-Jun 2025, header row index 5, data from index 6"""
+    """File 1 'Dec 2024' — same layout as Jan-Jun 2025, header row index 5, data from index 6.
+    All records are 2024 → include ALL."""
     sheet = wb['Dec 2024']
     rows = list(sheet.iter_rows(values_only=True))
     records = []
@@ -275,9 +299,7 @@ def extract_file1_dec2024(wb):
             continue
 
         lang, is_rehire = parse_lang_rehire(lang_rehire_raw)
-        has_pod = bool(pod)
-        if not has_pod and not is_rehire:
-            continue
+        # 2024 → include ALL
 
         first, last = split_name(name)
         rec = make_candidate(first, last, phone, email, office, lang, is_rehire,
@@ -290,7 +312,8 @@ def extract_file1_dec2024(wb):
 
 
 def extract_file1_may2021dec2021(wb):
-    """File 1 'May 2021 - Dec 2021' — no header, data from row 0
+    """File 1 'May 2021 - Dec 2021' — no header, data from row 0.
+    All records are 2021 → include ALL.
     Col 2: POD, 4: Email, 6: Name, 7: Phone, 8: Lang/Rehire, 9: Office"""
     sheet = wb['May 2021 - Dec 2021']
     rows = list(sheet.iter_rows(values_only=True))
@@ -307,9 +330,7 @@ def extract_file1_may2021dec2021(wb):
             continue
 
         lang, is_rehire = parse_lang_rehire(lang_rehire_raw)
-        has_pod = bool(pod)
-        if not has_pod and not is_rehire:
-            continue
+        # 2021 → include ALL (no payroll ID in this sheet)
 
         first, last = split_name(name)
         rec = make_candidate(first, last, phone, email, office, lang, is_rehire,
@@ -322,7 +343,8 @@ def extract_file1_may2021dec2021(wb):
 
 
 def extract_file1_sep2020apr2021(wb):
-    """File 1 'Sep2020 - Apr2021' — no header, data from row 0
+    """File 1 'Sep2020 - Apr2021' — no header, data from row 0.
+    All records are 2020-2021 → include ALL.
     Col 2: POD, 5: Name, 6: Phone, 8: Office"""
     sheet = wb['Sep2020 - Apr2021']
     rows = list(sheet.iter_rows(values_only=True))
@@ -336,11 +358,7 @@ def extract_file1_sep2020apr2021(wb):
         if not name or str(name).strip() == '':
             continue
 
-        # These are all completed (all have POD dates), so include all
-        has_pod = bool(pod)
-        if not has_pod:
-            continue
-
+        # 2020-2021 → include ALL (no payroll ID in this sheet)
         first, last = split_name(name)
         rec = make_candidate(first, last, phone, None, office, 'EN', False,
                              None, None, None, None, None, pod,
@@ -385,7 +403,9 @@ def extract_file2_newhires(wb):
 
         lang = 'FR' if is_french else 'EN'
         _, is_rehire = parse_lang_rehire(rehire_raw)
-        # For File 2 — include all (all are hired candidates in the 2026 tracker)
+        # File 2 is 2026 → hired only (POD activated OR is rehire)
+        if not (pod_bool is True or is_rehire or adp_sent or adp_complete):
+            continue
 
         first, last = split_name(name)
         preferred_str = str(preferred).strip() if preferred and str(preferred).strip() not in ('None', '') else ''
