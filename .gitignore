@@ -2,3 +2,6 @@ node_modules
 dist
 .env
 .env.local
+
+# Large data files — not for source control
+historical_data.json
