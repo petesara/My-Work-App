@@ -1,10 +1,15 @@
 # My Work App — ATS (Applicant Tracking System)
 
 ## ⚠️ IMPORTANT: Do NOT read `historical_data.json`
-This file is ~7.7 MB / 288 000 lines of raw candidate records. It is intentionally
-gitignored and kept on disk only for one-time import via the app UI.
-**Never open, cat, grep, or include it in any search.** Doing so will exhaust the
-context window and freeze the session.
+This file is a one-time migration artifact (~5 MB / 6 000 records). It is gitignored.
+**Never open, cat, grep, or include it in any search.** It is only needed to run the
+in-app import (Pipeline → Import → Historical Data). Once the import is done the file
+can and should be deleted — all data lives in D1 after that.
+
+### historical_data.json lifecycle
+1. Run `migrate.py` against the source Excel files → produces `historical_data.json`
+2. Open the app → Pipeline → Import → Historical Data tab → upload the file
+3. **Delete `historical_data.json`** — it is no longer needed
 
 ## Stack
 - **Frontend**: React 18 + Vite 6 + Zustand + Tailwind CSS (via PostCSS)

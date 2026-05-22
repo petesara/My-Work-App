@@ -506,7 +506,7 @@ def main():
     print(f'  French candidates: {fr_count}')
 
     with open(OUTPUT, 'w', encoding='utf-8') as f:
-        json.dump(final, f, ensure_ascii=False, indent=2)
+        json.dump(final, f, ensure_ascii=False, separators=(',', ':'))
 
     print(f'\nOutput written to: {OUTPUT}')
     print('Done!')
