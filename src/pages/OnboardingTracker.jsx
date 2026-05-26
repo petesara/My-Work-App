@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import useStore from '../store/useStore'
 import { t } from '../data/translations'
 import { REGIONS, OFFICES } from '../data/offices'
@@ -50,7 +50,7 @@ function StepBar({ steps }) {
   )
 }
 
-function OnboardingRow({ candidate, language, role }) {
+function OnboardingRow({ candidate, language, role, selected, onToggleSelect }) {
   const updateCandidate = useStore((s) => s.updateCandidate)
   const addToast = useStore((s) => s.addToast)
   const [expanded, setExpanded] = useState(false)
@@ -120,6 +120,7 @@ function OnboardingRow({ candidate, language, role }) {
 
   const status = getOnboardingStatus(candidate)
   const isComplete = status === 'fullyComplete'
+  const isProcessed = isComplete && candidate.exportedAt
 
   const statusPillStyle = (s) => {
     const map = {
@@ -134,84 +135,107 @@ function OnboardingRow({ candidate, language, role }) {
     }
   }
 
+  // Processed = POD complete + exported → green card
+  const cardBg = isProcessed ? '#F0FDF4' : (selected ? '#F0F4FF' : 'white')
+  const cardBorder = isProcessed ? '#6EE7B7' : (selected ? '#A5B4FC' : (isComplete ? '#C6F7EF' : '#E8EAF6'))
+
   return (
     <div style={{
-      background: 'white',
+      background: cardBg,
       borderRadius: '14px',
-      border: `1px solid ${isComplete ? '#C6F7EF' : '#E8EAF6'}`,
+      border: `1.5px solid ${cardBorder}`,
       marginBottom: 10,
       overflow: 'hidden',
-      boxShadow: '0 1px 3px rgba(30,39,105,0.05)',
+      boxShadow: isProcessed
+        ? '0 1px 6px rgba(34,197,94,0.12)'
+        : '0 1px 3px rgba(30,39,105,0.05)',
+      transition: 'border-color 0.2s, background 0.2s',
     }}>
       {/* Summary row */}
-      <div
-        onClick={() => setExpanded((e) => !e)}
-        style={{
-          display: 'flex', alignItems: 'center', padding: '12px 16px',
-          cursor: 'pointer', gap: 16,
-          background: isComplete ? '#F0FDF4' : 'white',
-          borderRadius: expanded ? '14px 14px 0 0' : '14px',
-          transition: 'background 0.15s',
-        }}
-        onMouseEnter={(e) => { if (!isComplete) e.currentTarget.style.background = '#F8F9FF' }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = isComplete ? '#F0FDF4' : 'white' }}
-      >
-        <div style={{ flex: '0 0 auto', minWidth: 200 }}>
-          <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#111827' }}>
-            {candidate.firstName} {candidate.lastName}
-            {candidate.preferredName && (
-              <span style={{ color: '#9CA3AF', fontWeight: 400, fontSize: '0.8rem' }}> ({candidate.preferredName})</span>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        {/* Checkbox column */}
+        <div
+          style={{ padding: '12px 8px 12px 14px', flexShrink: 0 }}
+          onClick={e => { e.stopPropagation(); onToggleSelect(candidate.id) }}
+        >
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => onToggleSelect(candidate.id)}
+            style={{ width: 15, height: 15, accentColor: '#1E2769', cursor: 'pointer', display: 'block' }}
+          />
+        </div>
+
+        {/* Rest of summary row — clickable to expand */}
+        <div
+          onClick={() => setExpanded((e) => !e)}
+          style={{
+            flex: 1, display: 'flex', alignItems: 'center', padding: '12px 16px 12px 4px',
+            cursor: 'pointer', gap: 16,
+            borderRadius: expanded ? '0 14px 0 0' : '0 14px 14px 0',
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={(e) => { if (!isProcessed && !selected) e.currentTarget.style.background = '#F8F9FF' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+        >
+          <div style={{ flex: '0 0 auto', minWidth: 200 }}>
+            <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#111827', display: 'flex', alignItems: 'center', gap: 6 }}>
+              {candidate.firstName} {candidate.lastName}
+              {isProcessed && <span style={{ fontSize: '0.65rem', background: '#D1FAE5', color: '#065F46', borderRadius: 4, padding: '1px 6px', fontWeight: 700 }}>✓ Processed</span>}
+              {candidate.preferredName && (
+                <span style={{ color: '#9CA3AF', fontWeight: 400, fontSize: '0.8rem' }}> ({candidate.preferredName})</span>
+              )}
+            </div>
+            <div style={{ fontSize: '0.7rem', color: '#6B7280', marginTop: 2 }}>
+              <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontWeight: 600, color: '#1E40AF' }}>{candidate.officeCode}</span>
+              {' · '}{candidate.manager}
+            </div>
+            {candidate.day0 && (
+              <div style={{ fontSize: '0.65rem', color: '#7C3AED', marginTop: 2, fontFamily: 'IBM Plex Mono, monospace' }}>
+                Day 0: {fmtDate(candidate.day0)}
+              </div>
+            )}
+            {candidate.hiredAt && (
+              <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginTop: 2 }}>
+                {language === 'FR' ? 'Embauché(e)' : 'Hired'}: {fmtDateTime(candidate.hiredAt)}
+              </div>
+            )}
+            {candidate.exportedAt && (
+              <div style={{ fontSize: '0.65rem', color: '#059669', marginTop: 1 }}>
+                {language === 'FR' ? 'Exporté' : 'Exported'}: {fmtDateTime(candidate.exportedAt)}
+              </div>
             )}
           </div>
-          <div style={{ fontSize: '0.7rem', color: '#6B7280', marginTop: 2 }}>
-            <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontWeight: 600, color: '#1E40AF' }}>{candidate.officeCode}</span>
-            {' · '}{candidate.manager}
-          </div>
-          {candidate.day0 && (
-            <div style={{ fontSize: '0.65rem', color: '#7C3AED', marginTop: 2, fontFamily: 'IBM Plex Mono, monospace' }}>
-              Day 0: {fmtDate(candidate.day0)}
-            </div>
-          )}
-          {candidate.hiredAt && (
-            <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginTop: 2 }}>
-              {language === 'FR' ? 'Embauché(e)' : 'Hired'}: {fmtDateTime(candidate.hiredAt)}
-            </div>
-          )}
-          {ob.userCreatedAt && (
-            <div style={{ fontSize: '0.65rem', color: '#1AA090', marginTop: 1 }}>
-              {language === 'FR' ? 'Utilisateur créé' : 'User created'}: {fmtDateTime(ob.userCreatedAt)}
-            </div>
-          )}
-        </div>
 
-        <div style={{ flex: 1 }}>
-          <StepBar steps={steps} />
-          <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginTop: 4 }}>
-            {t(STEP_LABELS[0], language)} → {t(STEP_LABELS[1], language)} → {t(STEP_LABELS[2], language)} → {t(STEP_LABELS[3], language)}
+          <div style={{ flex: 1 }}>
+            <StepBar steps={steps} />
+            <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginTop: 4 }}>
+              {t(STEP_LABELS[0], language)} → {t(STEP_LABELS[1], language)} → {t(STEP_LABELS[2], language)} → {t(STEP_LABELS[3], language)}
+            </div>
           </div>
-        </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '0 0 auto' }}>
-          {hasMissingDocs && (
-            <span title={t('missingDocs', language)} style={{ fontSize: '1rem' }}>🟡</span>
-          )}
-          {isHSF && !ob.hsfItRequestSent && (
-            <span style={{ fontSize: '0.7rem', background: '#DBEAFE', color: '#1E40AF', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>HSF</span>
-          )}
-          {candidate.isRehire && (
-            <span style={{ fontSize: '0.7rem', background: '#EDE9FE', color: '#5B21B6', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>
-              {language === 'FR' ? 'Réembauche' : 'Rehire'}
-            </span>
-          )}
-          <div style={statusPillStyle(status)}>
-            {t(status, language)}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '0 0 auto' }}>
+            {hasMissingDocs && (
+              <span title={t('missingDocs', language)} style={{ fontSize: '1rem' }}>🟡</span>
+            )}
+            {isHSF && !ob.hsfItRequestSent && (
+              <span style={{ fontSize: '0.7rem', background: '#DBEAFE', color: '#1E40AF', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>HSF</span>
+            )}
+            {candidate.isRehire && (
+              <span style={{ fontSize: '0.7rem', background: '#EDE9FE', color: '#5B21B6', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>
+                {language === 'FR' ? 'Réembauche' : 'Rehire'}
+              </span>
+            )}
+            <div style={statusPillStyle(status)}>
+              {t(status, language)}
+            </div>
+            {isOps && (
+              <span style={{ fontSize: '0.65rem', color: '#94A3B8', fontStyle: 'italic' }}>
+                {language === 'FR' ? 'Lecture seule' : 'Read-only'}
+              </span>
+            )}
+            <span style={{ color: '#94A3B8', fontSize: '0.8rem' }}>{expanded ? '▴' : '▾'}</span>
           </div>
-          {isOps && (
-            <span style={{ fontSize: '0.65rem', color: '#94A3B8', fontStyle: 'italic' }}>
-              {language === 'FR' ? 'Lecture seule' : 'Read-only'}
-            </span>
-          )}
-          <span style={{ color: '#94A3B8', fontSize: '0.8rem' }}>{expanded ? '▴' : '▾'}</span>
         </div>
       </div>
 
@@ -264,7 +288,7 @@ function OnboardingRow({ candidate, language, role }) {
             {/* Step 2: ADP Onboarding Sent */}
             <div style={{
               background: 'white', borderRadius: 10, padding: '14px',
-              border: `1px solid #E8EAF6`,
+              border: '1px solid #E8EAF6',
               opacity: isRecruitment ? 0.7 : 1,
             }}>
               <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
@@ -322,7 +346,7 @@ function OnboardingRow({ candidate, language, role }) {
             {/* Step 3: ADP Complete */}
             <div style={{
               background: 'white', borderRadius: 10, padding: '14px',
-              border: `1px solid #E8EAF6`,
+              border: '1px solid #E8EAF6',
               opacity: isRecruitment ? 0.7 : 1,
             }}>
               <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
@@ -438,34 +462,79 @@ function OnboardingRow({ candidate, language, role }) {
   )
 }
 
+// Actions dropdown component
+function ActionsDropdown({ selected, onExport, onDelete, language }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  const FR = language === 'FR'
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          padding: '7px 14px', borderRadius: 8, border: '1.5px solid #E8EAF6',
+          background: 'white', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
+          color: '#1E2769', display: 'flex', alignItems: 'center', gap: 6,
+          boxShadow: '0 1px 4px rgba(30,39,105,0.08)',
+        }}
+      >
+        {FR ? 'Actions' : 'Actions'} <span style={{ fontSize: '0.6rem' }}>{open ? '▴' : '▾'}</span>
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: '100%', right: 0, marginTop: 4, zIndex: 200,
+          background: 'white', borderRadius: 10, border: '1px solid #E8EAF6',
+          boxShadow: '0 8px 24px rgba(30,39,105,0.12)', minWidth: 180, overflow: 'hidden',
+        }}>
+          <button
+            onClick={() => { setOpen(false); onExport() }}
+            style={{
+              display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left',
+              background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.83rem',
+              color: '#1E2769', fontWeight: 600, borderBottom: '1px solid #F3F4F6',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = '#F4F5FB'}
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+          >
+            ↓ {FR ? 'Exporter la sélection' : 'Export selected'}
+            <div style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: 400, marginTop: 1 }}>
+              {FR ? 'Copier + marquer comme traité' : 'Copy to clipboard + mark processed'}
+            </div>
+          </button>
+          <button
+            onClick={() => { setOpen(false); onDelete() }}
+            style={{
+              display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left',
+              background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.83rem',
+              color: '#EF4444', fontWeight: 600,
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = '#FFF0F5'}
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+          >
+            🗑 {FR ? 'Supprimer la sélection' : 'Delete selected'}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Export modal — admin only
 function ExportModal({ candidates, language, onClose }) {
-  const managers = useStore((s) => s.managers)
-  const [selected, setSelected] = useState(new Set(candidates.map(c => c.id)))
   const [copied, setCopied] = useState(false)
+  const FR = language === 'FR'
 
-  const getOfficeName = (code) => managers.find(m => m.code === code)?.name || ''
-
-  const toggleAll = () => {
-    if (selected.size === candidates.length) setSelected(new Set())
-    else setSelected(new Set(candidates.map(c => c.id)))
-  }
-
-  const toggle = (id) => {
-    const next = new Set(selected)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
-    setSelected(next)
-  }
-
-  const selectedList = candidates.filter(c => selected.has(c.id))
-
-  const buildText = () => {
-    const lines = selectedList.map(c =>
+  const buildText = () =>
+    candidates.map(c =>
       `${c.firstName} ${c.lastName} | ${c.officeCode} | ${c.email || '—'} | ${c.phone || '—'}`
-    )
-    return lines.join('\n')
-  }
+    ).join('\n')
 
   const handleCopy = () => {
     navigator.clipboard.writeText(buildText()).then(() => {
@@ -474,95 +543,46 @@ function ExportModal({ candidates, language, onClose }) {
     })
   }
 
-  const FR = language === 'FR'
-
   return (
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(30,39,105,0.45)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 24,
     }} onClick={onClose}>
       <div style={{
-        background: 'white', borderRadius: 16, width: '100%', maxWidth: 620,
-        maxHeight: '85vh', display: 'flex', flexDirection: 'column',
+        background: 'white', borderRadius: 16, width: '100%', maxWidth: 560,
         boxShadow: '0 20px 60px rgba(30,39,105,0.2)',
       }} onClick={e => e.stopPropagation()}>
         <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #E8EAF6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: '1rem', fontWeight: 800, color: '#1E2769' }}>
-              {FR ? 'Exporter les nouvelles recrues' : 'Export New Hires'}
+              {FR ? 'Rapport d\'exportation' : 'Export Report'}
             </div>
             <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: 2 }}>
-              {FR ? 'Cochez les candidats à inclure dans le rapport' : 'Select candidates to include in the report email'}
+              {candidates.length} {FR ? 'personne(s) — Prénom Nom | Bureau | Courriel | Téléphone' : 'person/people — First Last | Office | Email | Phone'}
             </div>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94A3B8' }}>✕</button>
         </div>
-
-        <div style={{ padding: '12px 24px', borderBottom: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '0.8rem', color: '#374151' }}>
-            <input type="checkbox" checked={selected.size === candidates.length && candidates.length > 0} onChange={toggleAll}
-              style={{ width: 14, height: 14, accentColor: '#1E2769' }} />
-            {FR ? 'Tout sélectionner' : 'Select all'} ({selected.size}/{candidates.length})
-          </label>
+        <div style={{ padding: '16px 24px' }}>
+          <pre style={{
+            fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.78rem', color: '#1E2769',
+            background: '#F4F5FB', borderRadius: 8, padding: '14px', margin: 0,
+            whiteSpace: 'pre-wrap', lineHeight: 1.7, border: '1px solid #E8EAF6',
+          }}>
+            {buildText()}
+          </pre>
         </div>
-
-        <div style={{ overflowY: 'auto', flex: 1, padding: '8px 0' }}>
-          {candidates.map(c => (
-            <label key={c.id} style={{
-              display: 'flex', alignItems: 'center', gap: 12, padding: '10px 24px',
-              cursor: 'pointer', borderBottom: '1px solid #F9FAFB',
-              background: selected.has(c.id) ? '#F8F9FF' : 'white',
-              transition: 'background 0.1s',
-            }}>
-              <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)}
-                style={{ width: 14, height: 14, accentColor: '#1E2769', flexShrink: 0 }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#111827' }}>
-                  {c.firstName} {c.lastName}
-                </div>
-                <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: 1 }}>
-                  <span style={{ fontFamily: 'IBM Plex Mono, monospace', color: '#1E40AF', fontWeight: 600 }}>{c.officeCode}</span>
-                  {' · '}{c.email || '—'}{' · '}{c.phone || '—'}
-                </div>
-              </div>
-              {c.day0 && (
-                <div style={{ fontSize: '0.68rem', color: '#7C3AED', fontFamily: 'IBM Plex Mono, monospace', flexShrink: 0 }}>
-                  Day 0: {c.day0}
-                </div>
-              )}
-            </label>
-          ))}
-          {candidates.length === 0 && (
-            <div style={{ padding: '40px 24px', textAlign: 'center', color: '#94A3B8', fontSize: '0.875rem' }}>
-              {FR ? 'Aucune nouvelle recrue à afficher.' : 'No new hires to display.'}
-            </div>
-          )}
-        </div>
-
-        {/* Preview */}
-        {selectedList.length > 0 && (
-          <div style={{ margin: '0 24px 12px', background: '#F8F9FF', borderRadius: 8, border: '1px solid #E8EAF6', padding: 12 }}>
-            <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', marginBottom: 6 }}>
-              {FR ? 'Aperçu' : 'Preview'} — {FR ? 'Prénom Nom | Bureau | Courriel | Téléphone' : 'First Last | Office | Email | Phone'}
-            </div>
-            <pre style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.72rem', color: '#374151', margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-              {buildText()}
-            </pre>
-          </div>
-        )}
-
         <div style={{ padding: '12px 24px 20px', borderTop: '1px solid #E8EAF6', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #E8EAF6', background: 'white', fontSize: '0.85rem', cursor: 'pointer', color: '#374151' }}>
             {FR ? 'Fermer' : 'Close'}
           </button>
           <button
             onClick={handleCopy}
-            disabled={selectedList.length === 0}
             style={{
               padding: '8px 20px', borderRadius: 8, border: 'none',
               background: copied ? '#2DCDB8' : '#1E2769',
-              color: 'white', fontSize: '0.85rem', fontWeight: 700, cursor: selectedList.length === 0 ? 'not-allowed' : 'pointer',
-              opacity: selectedList.length === 0 ? 0.5 : 1, transition: 'background 0.2s',
+              color: 'white', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer',
+              transition: 'background 0.2s',
             }}
           >
             {copied ? (FR ? '✓ Copié!' : '✓ Copied!') : (FR ? 'Copier dans le presse-papiers' : 'Copy to Clipboard')}
@@ -628,7 +648,7 @@ function ImportModal({ language, onClose, onImport }) {
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(30,39,105,0.45)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 24,
-    }} onClick={onClose}>
+    }} onClick={() => onClose(0)}>
       <div style={{
         background: 'white', borderRadius: 16, width: '100%', maxWidth: 900,
         maxHeight: '85vh', display: 'flex', flexDirection: 'column',
@@ -686,7 +706,7 @@ function ImportModal({ language, onClose, onImport }) {
           </table>
           <button onClick={addRow} style={{
             marginTop: 10, padding: '6px 14px', borderRadius: 6, border: '1.5px dashed #E8EAF6',
-            background: 'white', fontSize: '0.8rem', color: '#64748B', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+            background: 'white', fontSize: '0.8rem', color: '#64748B', cursor: 'pointer',
           }}>
             + {FR ? 'Ajouter une ligne' : 'Add row'}
           </button>
@@ -722,8 +742,11 @@ export default function OnboardingTracker() {
   const language = useStore((s) => s.language)
   const role = useStore((s) => s.role)
   const candidates = useStore((s) => s.candidates)
+  const updateCandidate = useStore((s) => s.updateCandidate)
+  const deleteCandidate = useStore((s) => s.deleteCandidate)
   const importDirectToOnboarding = useStore((s) => s.importDirectToOnboarding)
   const addToast = useStore((s) => s.addToast)
+
   const [filter, setFilter] = useState('all')
   const [filterRegion, setFilterRegion] = useState('all')
   const [filterOffice, setFilterOffice] = useState('')
@@ -731,10 +754,12 @@ export default function OnboardingTracker() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [sortBy, setSortBy] = useState('newest')
-  const [showExport, setShowExport] = useState(false)
+  const [selected, setSelected] = useState(new Set())
+  const [showExportModal, setShowExportModal] = useState(false)
   const [showImport, setShowImport] = useState(false)
 
   const isAdmin = role === 'admin'
+  const FR = language === 'FR'
 
   const hist2026InProgress = candidates.filter((c) =>
     c.isHistorical &&
@@ -786,6 +811,46 @@ export default function OnboardingTracker() {
     fullyComplete: hired.filter((c) => getOnboardingStatus(c) === 'fullyComplete').length,
   }
 
+  const toggleSelect = (id) => {
+    setSelected(s => {
+      const next = new Set(s)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selected.size === sorted.length && sorted.length > 0) setSelected(new Set())
+    else setSelected(new Set(sorted.map(c => c.id)))
+  }
+
+  const selectedCandidates = sorted.filter(c => selected.has(c.id))
+
+  const handleBulkExport = () => {
+    if (selectedCandidates.length === 0) return
+    // Mark all selected as exported
+    const now = new Date().toISOString()
+    selectedCandidates.forEach(c => updateCandidate(c.id, { exportedAt: now }))
+    setShowExportModal(true)
+  }
+
+  const handleBulkDelete = () => {
+    if (selectedCandidates.length === 0) return
+    const msg = FR
+      ? `Supprimer ${selectedCandidates.length} candidat(s)?`
+      : `Delete ${selectedCandidates.length} candidate(s)?`
+    if (!window.confirm(msg)) return
+    selectedCandidates.forEach(c => deleteCandidate(c.id))
+    setSelected(new Set())
+    addToast(FR ? 'Candidats supprimés' : 'Candidates deleted', 'success')
+  }
+
+  const handleImportDone = (count) => {
+    setShowImport(false)
+    if (count > 0) addToast(`${count} ${FR ? 'personne(s) importée(s)' : 'person/people imported'}`, 'success')
+  }
+
   const filterBtnStyle = (active) => ({
     padding: '5px 14px', fontSize: '0.75rem',
     fontWeight: active ? 700 : 500, borderRadius: 20,
@@ -797,21 +862,12 @@ export default function OnboardingTracker() {
   })
 
   const kpiCards = [
-    { key: 'all',           label: language === 'FR' ? 'Total' : 'Total',          color: '#1E2769' },
-    { key: 'awaitingADPSend', label: language === 'FR' ? 'En attente' : 'Awaiting', color: '#94A3B8' },
-    { key: 'adpSentPending',  label: language === 'FR' ? 'ADP envoyé' : 'ADP Sent', color: '#F59E0B' },
-    { key: 'podPending',      label: language === 'FR' ? 'POD en attente' : 'POD Pending', color: '#3B82F6' },
-    { key: 'fullyComplete',   label: language === 'FR' ? 'Complété' : 'Complete',   color: '#2DCDB8' },
+    { key: 'all',           label: FR ? 'Total' : 'Total',                color: '#1E2769' },
+    { key: 'awaitingADPSend', label: FR ? 'En attente' : 'Awaiting',      color: '#94A3B8' },
+    { key: 'adpSentPending',  label: FR ? 'ADP envoyé' : 'ADP Sent',      color: '#F59E0B' },
+    { key: 'podPending',      label: FR ? 'POD en attente' : 'POD Pending', color: '#3B82F6' },
+    { key: 'fullyComplete',   label: FR ? 'Complété' : 'Complete',         color: '#2DCDB8' },
   ]
-
-  const handleImportDone = (count) => {
-    setShowImport(false)
-    if (count > 0) {
-      addToast(`${count} ${language === 'FR' ? 'personne(s) importée(s)' : 'person/people imported'}`, 'success')
-    }
-  }
-
-  const FR = language === 'FR'
 
   return (
     <div style={{ padding: 24 }}>
@@ -829,21 +885,9 @@ export default function OnboardingTracker() {
               style={{
                 padding: '8px 16px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
                 border: '1.5px solid #E8EAF6', background: 'white', color: '#374151', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 6,
               }}
             >
               ↑ {FR ? 'Importer' : 'Import'}
-            </button>
-            <button
-              onClick={() => setShowExport(true)}
-              style={{
-                padding: '8px 16px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
-                border: 'none', background: '#1E2769', color: 'white', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 6,
-                boxShadow: '0 2px 8px rgba(30,39,105,0.25)',
-              }}
-            >
-              ↓ {FR ? 'Exporter' : 'Export'}
             </button>
           </div>
         )}
@@ -912,13 +956,49 @@ export default function OnboardingTracker() {
         </div>
       </div>
 
+      {/* Bulk action bar — appears when rows are selected */}
+      {sorted.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px',
+          background: selected.size > 0 ? '#1E2769' : 'white',
+          border: `1px solid ${selected.size > 0 ? '#1E2769' : '#E8EAF6'}`,
+          borderRadius: 10, marginBottom: 12, transition: 'all 0.2s',
+        }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={selected.size === sorted.length && sorted.length > 0}
+              onChange={toggleSelectAll}
+              style={{ width: 15, height: 15, accentColor: selected.size > 0 ? 'white' : '#1E2769', cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: selected.size > 0 ? 'white' : '#374151' }}>
+              {selected.size > 0
+                ? `${selected.size} ${FR ? 'sélectionné(s)' : 'selected'}`
+                : (FR ? 'Tout sélectionner' : 'Select all')}
+            </span>
+          </label>
+          {selected.size > 0 && (
+            <>
+              <div style={{ flex: 1 }} />
+              <ActionsDropdown
+                selected={selectedCandidates}
+                onExport={handleBulkExport}
+                onDelete={handleBulkDelete}
+                language={language}
+              />
+            </>
+          )}
+        </div>
+      )}
+
       {/* Step legend */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
         {[
           { color: '#94A3B8', label: t('step1', language) + ' (Recruitment)' },
           { color: '#F59E0B', label: t('step2', language) + ' (Admin)' },
           { color: '#3B82F6', label: t('step3', language) + ' (Admin)' },
           { color: '#2DCDB8', label: t('step4', language) + ' (Admin)' },
+          { color: '#6EE7B7', label: FR ? 'Traité ✓' : 'Processed ✓' },
         ].map(({ color, label }) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.68rem', color: '#64748B' }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
@@ -950,16 +1030,23 @@ export default function OnboardingTracker() {
         </div>
       ) : (
         sorted.map((c) => (
-          <OnboardingRow key={c.id} candidate={c} language={language} role={role} />
+          <OnboardingRow
+            key={c.id}
+            candidate={c}
+            language={language}
+            role={role}
+            selected={selected.has(c.id)}
+            onToggleSelect={toggleSelect}
+          />
         ))
       )}
 
       {/* Export modal */}
-      {showExport && (
+      {showExportModal && (
         <ExportModal
-          candidates={hired}
+          candidates={selectedCandidates}
           language={language}
-          onClose={() => setShowExport(false)}
+          onClose={() => { setShowExportModal(false); setSelected(new Set()) }}
         />
       )}
 

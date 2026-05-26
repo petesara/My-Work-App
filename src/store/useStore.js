@@ -147,6 +147,22 @@ const useStore = create((set, get) => ({
     localStorage.setItem('ats-managers', JSON.stringify(updated))
   },
 
+  addManager: (office) => {
+    set(s => {
+      const updated = [...s.managers, office]
+      localStorage.setItem('ats-managers', JSON.stringify(updated))
+      return { managers: updated }
+    })
+  },
+
+  deleteManager: (code) => {
+    set(s => {
+      const updated = s.managers.filter(m => m.code !== code)
+      localStorage.setItem('ats-managers', JSON.stringify(updated))
+      return { managers: updated }
+    })
+  },
+
   addCharity: (name) => {
     const trimmed = name.trim().toUpperCase()
     if (!trimmed) return
