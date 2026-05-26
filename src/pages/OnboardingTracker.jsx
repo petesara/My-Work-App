@@ -7,9 +7,7 @@ const STEP_LABELS = ['step1', 'step2', 'step3', 'step4']
 
 function getOnboardingStatus(c) {
   const ob = c.onboarding || {}
-  // Step 1 (user profile) is the gate condition — all candidates here already have it
   if (!ob.adpSentDate) return 'awaitingADPSend'
-  // Once ADP complete date is set, missing docs no longer block progression
   if (!ob.adpCompleteDate) return 'adpSentPending'
   if (!ob.podActivatedDate) return 'podPending'
   return 'fullyComplete'
@@ -57,7 +55,6 @@ function OnboardingRow({ candidate, language, role }) {
   const addToast = useStore((s) => s.addToast)
   const [expanded, setExpanded] = useState(false)
 
-  // Operations: read-only. Step 1 editable only by Recruitment. Steps 2-4 editable only by Admin.
   const isOps = role === 'operations'
   const isRecruitment = role === 'recruitment'
   const isAdmin = role === 'admin'
@@ -78,7 +75,7 @@ function OnboardingRow({ candidate, language, role }) {
   const isHSF = candidate.charity === 'HSF'
 
   const steps = [
-    true,                  // Step 1: always complete (username is the gate condition)
+    true,
     !!ob.adpSentDate,
     !!ob.adpCompleteDate,
     !!ob.podActivatedDate,
@@ -92,12 +89,15 @@ function OnboardingRow({ candidate, language, role }) {
     } else {
       newOb = { ...newOb, [path]: value }
     }
-    // Track timestamp when user creation is checked on
     if (path === 'userCreated' && value === true && !ob.userCreatedAt) {
       newOb.userCreatedAt = new Date().toISOString()
     }
     updateCandidate(candidate.id, { onboarding: newOb })
     addToast(t('updatedSuccessfully', language), 'success')
+  }
+
+  const handlePodToggle = (checked) => {
+    update('podActivatedDate', checked ? new Date().toISOString().slice(0, 10) : '')
   }
 
   const checkboxStyle = (disabled) => ({
@@ -167,13 +167,16 @@ function OnboardingRow({ candidate, language, role }) {
             <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontWeight: 600, color: '#1E40AF' }}>{candidate.officeCode}</span>
             {' · '}{candidate.manager}
           </div>
-          {/* Hired timestamp */}
+          {candidate.day0 && (
+            <div style={{ fontSize: '0.65rem', color: '#7C3AED', marginTop: 2, fontFamily: 'IBM Plex Mono, monospace' }}>
+              Day 0: {fmtDate(candidate.day0)}
+            </div>
+          )}
           {candidate.hiredAt && (
             <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginTop: 2 }}>
               {language === 'FR' ? 'Embauché(e)' : 'Hired'}: {fmtDateTime(candidate.hiredAt)}
             </div>
           )}
-          {/* User created timestamp */}
           {ob.userCreatedAt && (
             <div style={{ fontSize: '0.65rem', color: '#1AA090', marginTop: 1 }}>
               {language === 'FR' ? 'Utilisateur créé' : 'User created'}: {fmtDateTime(ob.userCreatedAt)}
@@ -227,7 +230,7 @@ function OnboardingRow({ candidate, language, role }) {
           )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
 
-            {/* Step 1: User Profile — auto-complete, created via User Profiles page */}
+            {/* Step 1: User Profile */}
             <div style={{ background: '#E6FAF8', borderRadius: 10, padding: '14px', border: '1px solid #C6F7EF' }}>
               <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#1AA090', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
                 1. {t('step1', language)} ✓
@@ -258,7 +261,7 @@ function OnboardingRow({ candidate, language, role }) {
               </div>
             </div>
 
-            {/* Step 2: ADP Onboarding Sent — Admin only */}
+            {/* Step 2: ADP Onboarding Sent */}
             <div style={{
               background: 'white', borderRadius: 10, padding: '14px',
               border: `1px solid #E8EAF6`,
@@ -316,7 +319,7 @@ function OnboardingRow({ candidate, language, role }) {
               </label>
             </div>
 
-            {/* Step 3: ADP Complete — Admin only */}
+            {/* Step 3: ADP Complete */}
             <div style={{
               background: 'white', borderRadius: 10, padding: '14px',
               border: `1px solid #E8EAF6`,
@@ -373,13 +376,14 @@ function OnboardingRow({ candidate, language, role }) {
               )}
             </div>
 
-            {/* Step 4: POD Activated — Admin only */}
+            {/* Step 4: POD Activated — checkbox */}
             <div style={{
-              background: 'white', borderRadius: 10, padding: '14px',
-              border: `1px solid #E8EAF6`,
+              background: ob.podActivatedDate ? '#F0FDF9' : 'white',
+              borderRadius: 10, padding: '14px',
+              border: `1px solid ${ob.podActivatedDate ? '#C6F7EF' : '#E8EAF6'}`,
               opacity: isRecruitment ? 0.7 : 1,
             }}>
-              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: ob.podActivatedDate ? '#1AA090' : '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
                 4. {t('step4', language)}
               </div>
               {isRecruitment && (
@@ -387,18 +391,42 @@ function OnboardingRow({ candidate, language, role }) {
                   {language === 'FR' ? 'Géré par Admin' : 'Managed by Admin'}
                 </div>
               )}
-              <div>
-                <label style={{ fontSize: '0.7rem', color: '#64748B', display: 'block', marginBottom: 4 }}>{t('podActivatedDate', language)}:</label>
+              <label style={{
+                display: 'flex', alignItems: 'center', gap: 14,
+                cursor: (isOps || isRecruitment) ? 'not-allowed' : 'pointer',
+                padding: '10px 14px',
+                background: ob.podActivatedDate ? '#E6FAF8' : '#F8F9FF',
+                borderRadius: 8,
+                border: `1.5px solid ${ob.podActivatedDate ? '#2DCDB8' : '#E8EAF6'}`,
+                transition: 'all 0.2s',
+              }}>
                 <input
-                  type="date"
-                  value={ob.podActivatedDate || ''}
+                  type="checkbox"
+                  checked={!!ob.podActivatedDate}
                   disabled={isOps || isRecruitment}
-                  onChange={(e) => update('podActivatedDate', e.target.value)}
-                  style={dateInpStyle(isOps || isRecruitment)}
+                  onChange={(e) => handlePodToggle(e.target.checked)}
+                  style={{
+                    width: 20, height: 20,
+                    accentColor: '#2DCDB8',
+                    cursor: (isOps || isRecruitment) ? 'not-allowed' : 'pointer',
+                    flexShrink: 0,
+                  }}
                 />
-              </div>
-              {ob.podActivatedDate && ob.adpCompleteDate && ob.adpSentDate && ob.userCreated && (
-                <div style={{ marginTop: 12, padding: '6px 10px', background: '#E6FAF8', borderRadius: 6, fontSize: '0.75rem', color: '#1AA090', fontWeight: 600 }}>
+                <div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: ob.podActivatedDate ? '#1AA090' : '#374151' }}>
+                    {ob.podActivatedDate
+                      ? (language === 'FR' ? 'POD activé ✓' : 'POD Activated ✓')
+                      : (language === 'FR' ? 'Marquer comme activé' : 'Mark as activated')}
+                  </div>
+                  {ob.podActivatedDate && (
+                    <div style={{ fontSize: '0.68rem', color: '#64748B', marginTop: 2, fontFamily: 'IBM Plex Mono, monospace' }}>
+                      {fmtDate(ob.podActivatedDate)}
+                    </div>
+                  )}
+                </div>
+              </label>
+              {ob.podActivatedDate && ob.adpCompleteDate && ob.adpSentDate && (
+                <div style={{ marginTop: 10, padding: '6px 10px', background: '#E6FAF8', borderRadius: 6, fontSize: '0.75rem', color: '#1AA090', fontWeight: 600 }}>
                   ✓ {t('fullyComplete', language)}
                 </div>
               )}
@@ -410,12 +438,292 @@ function OnboardingRow({ candidate, language, role }) {
   )
 }
 
+// Export modal — admin only
+function ExportModal({ candidates, language, onClose }) {
+  const managers = useStore((s) => s.managers)
+  const [selected, setSelected] = useState(new Set(candidates.map(c => c.id)))
+  const [copied, setCopied] = useState(false)
+
+  const getOfficeName = (code) => managers.find(m => m.code === code)?.name || ''
+
+  const toggleAll = () => {
+    if (selected.size === candidates.length) setSelected(new Set())
+    else setSelected(new Set(candidates.map(c => c.id)))
+  }
+
+  const toggle = (id) => {
+    const next = new Set(selected)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    setSelected(next)
+  }
+
+  const selectedList = candidates.filter(c => selected.has(c.id))
+
+  const buildText = () => {
+    const lines = selectedList.map(c =>
+      `${c.firstName} ${c.lastName} | ${c.officeCode} | ${c.email || '—'} | ${c.phone || '—'}`
+    )
+    return lines.join('\n')
+  }
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(buildText()).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  const FR = language === 'FR'
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(30,39,105,0.45)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 24,
+    }} onClick={onClose}>
+      <div style={{
+        background: 'white', borderRadius: 16, width: '100%', maxWidth: 620,
+        maxHeight: '85vh', display: 'flex', flexDirection: 'column',
+        boxShadow: '0 20px 60px rgba(30,39,105,0.2)',
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #E8EAF6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#1E2769' }}>
+              {FR ? 'Exporter les nouvelles recrues' : 'Export New Hires'}
+            </div>
+            <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: 2 }}>
+              {FR ? 'Cochez les candidats à inclure dans le rapport' : 'Select candidates to include in the report email'}
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94A3B8' }}>✕</button>
+        </div>
+
+        <div style={{ padding: '12px 24px', borderBottom: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '0.8rem', color: '#374151' }}>
+            <input type="checkbox" checked={selected.size === candidates.length && candidates.length > 0} onChange={toggleAll}
+              style={{ width: 14, height: 14, accentColor: '#1E2769' }} />
+            {FR ? 'Tout sélectionner' : 'Select all'} ({selected.size}/{candidates.length})
+          </label>
+        </div>
+
+        <div style={{ overflowY: 'auto', flex: 1, padding: '8px 0' }}>
+          {candidates.map(c => (
+            <label key={c.id} style={{
+              display: 'flex', alignItems: 'center', gap: 12, padding: '10px 24px',
+              cursor: 'pointer', borderBottom: '1px solid #F9FAFB',
+              background: selected.has(c.id) ? '#F8F9FF' : 'white',
+              transition: 'background 0.1s',
+            }}>
+              <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)}
+                style={{ width: 14, height: 14, accentColor: '#1E2769', flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#111827' }}>
+                  {c.firstName} {c.lastName}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: 1 }}>
+                  <span style={{ fontFamily: 'IBM Plex Mono, monospace', color: '#1E40AF', fontWeight: 600 }}>{c.officeCode}</span>
+                  {' · '}{c.email || '—'}{' · '}{c.phone || '—'}
+                </div>
+              </div>
+              {c.day0 && (
+                <div style={{ fontSize: '0.68rem', color: '#7C3AED', fontFamily: 'IBM Plex Mono, monospace', flexShrink: 0 }}>
+                  Day 0: {c.day0}
+                </div>
+              )}
+            </label>
+          ))}
+          {candidates.length === 0 && (
+            <div style={{ padding: '40px 24px', textAlign: 'center', color: '#94A3B8', fontSize: '0.875rem' }}>
+              {FR ? 'Aucune nouvelle recrue à afficher.' : 'No new hires to display.'}
+            </div>
+          )}
+        </div>
+
+        {/* Preview */}
+        {selectedList.length > 0 && (
+          <div style={{ margin: '0 24px 12px', background: '#F8F9FF', borderRadius: 8, border: '1px solid #E8EAF6', padding: 12 }}>
+            <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', marginBottom: 6 }}>
+              {FR ? 'Aperçu' : 'Preview'} — {FR ? 'Prénom Nom | Bureau | Courriel | Téléphone' : 'First Last | Office | Email | Phone'}
+            </div>
+            <pre style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: '0.72rem', color: '#374151', margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+              {buildText()}
+            </pre>
+          </div>
+        )}
+
+        <div style={{ padding: '12px 24px 20px', borderTop: '1px solid #E8EAF6', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #E8EAF6', background: 'white', fontSize: '0.85rem', cursor: 'pointer', color: '#374151' }}>
+            {FR ? 'Fermer' : 'Close'}
+          </button>
+          <button
+            onClick={handleCopy}
+            disabled={selectedList.length === 0}
+            style={{
+              padding: '8px 20px', borderRadius: 8, border: 'none',
+              background: copied ? '#2DCDB8' : '#1E2769',
+              color: 'white', fontSize: '0.85rem', fontWeight: 700, cursor: selectedList.length === 0 ? 'not-allowed' : 'pointer',
+              opacity: selectedList.length === 0 ? 0.5 : 1, transition: 'background 0.2s',
+            }}
+          >
+            {copied ? (FR ? '✓ Copié!' : '✓ Copied!') : (FR ? 'Copier dans le presse-papiers' : 'Copy to Clipboard')}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Direct import modal — admin only
+const EMPTY_ROW = { firstName: '', lastName: '', phone: '', email: '', payrollId: '', officeCode: '', day0: '' }
+
+function ImportModal({ language, onClose, onImport }) {
+  const [rows, setRows] = useState([{ ...EMPTY_ROW }])
+  const [errors, setErrors] = useState([])
+  const [importing, setImporting] = useState(false)
+  const FR = language === 'FR'
+
+  const setRow = (i, field, value) => {
+    setRows(r => r.map((row, idx) => idx === i ? { ...row, [field]: value } : row))
+  }
+
+  const addRow = () => setRows(r => [...r, { ...EMPTY_ROW }])
+  const removeRow = (i) => setRows(r => r.filter((_, idx) => idx !== i))
+
+  const validate = () => {
+    const errs = rows.map(r => {
+      const e = {}
+      if (!r.firstName.trim()) e.firstName = FR ? 'Requis' : 'Required'
+      if (!r.lastName.trim()) e.lastName = FR ? 'Requis' : 'Required'
+      return e
+    })
+    setErrors(errs)
+    return errs.every(e => Object.keys(e).length === 0)
+  }
+
+  const handleImport = async () => {
+    if (!validate()) return
+    setImporting(true)
+    const count = await onImport(rows)
+    setImporting(false)
+    onClose(count)
+  }
+
+  const inp = (hasErr) => ({
+    padding: '5px 8px', borderRadius: 5, fontSize: '0.78rem',
+    border: `1px solid ${hasErr ? '#EF4444' : '#E8EAF6'}`,
+    width: '100%', boxSizing: 'border-box', outline: 'none',
+  })
+
+  const cols = [
+    { key: 'firstName', label: FR ? 'Prénom *' : 'First Name *', width: 110 },
+    { key: 'lastName',  label: FR ? 'Nom *' : 'Last Name *',  width: 110 },
+    { key: 'phone',     label: FR ? 'Mobile' : 'Mobile',       width: 120 },
+    { key: 'email',     label: FR ? 'Courriel' : 'Email',      width: 150 },
+    { key: 'payrollId', label: 'ID',                            width: 80  },
+    { key: 'officeCode',label: FR ? 'Bureau' : 'Office',        width: 80  },
+    { key: 'day0',      label: 'Day 0',                         width: 120, type: 'date' },
+  ]
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(30,39,105,0.45)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 24,
+    }} onClick={onClose}>
+      <div style={{
+        background: 'white', borderRadius: 16, width: '100%', maxWidth: 900,
+        maxHeight: '85vh', display: 'flex', flexDirection: 'column',
+        boxShadow: '0 20px 60px rgba(30,39,105,0.2)',
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #E8EAF6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#1E2769' }}>
+              {FR ? 'Importer directement en intégration' : 'Import Directly to Onboarding'}
+            </div>
+            <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: 2 }}>
+              {FR ? 'Pour les réembauches et les personnes sans code de bureau — contourne le pipeline' : 'For rehires & people without office codes — bypasses the pipeline'}
+            </div>
+          </div>
+          <button onClick={() => onClose(0)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94A3B8' }}>✕</button>
+        </div>
+
+        <div style={{ overflowX: 'auto', overflowY: 'auto', flex: 1, padding: '16px 24px' }}>
+          <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+            <thead>
+              <tr>
+                {cols.map(c => (
+                  <th key={c.key} style={{ padding: '4px 6px 8px', fontSize: '0.65rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', textAlign: 'left', whiteSpace: 'nowrap', width: c.width }}>
+                    {c.label}
+                  </th>
+                ))}
+                <th style={{ width: 30 }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <tr key={i}>
+                  {cols.map(c => (
+                    <td key={c.key} style={{ padding: '3px 4px', verticalAlign: 'top' }}>
+                      <input
+                        type={c.type || 'text'}
+                        value={row[c.key]}
+                        onChange={e => setRow(i, c.key, e.target.value)}
+                        style={inp(errors[i]?.[c.key])}
+                        placeholder={c.type === 'date' ? 'YYYY-MM-DD' : ''}
+                      />
+                      {errors[i]?.[c.key] && (
+                        <div style={{ fontSize: '0.6rem', color: '#EF4444', marginTop: 1 }}>{errors[i][c.key]}</div>
+                      )}
+                    </td>
+                  ))}
+                  <td style={{ padding: '3px 4px', verticalAlign: 'middle' }}>
+                    {rows.length > 1 && (
+                      <button onClick={() => removeRow(i)} style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: '0.85rem', padding: '4px' }}>✕</button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <button onClick={addRow} style={{
+            marginTop: 10, padding: '6px 14px', borderRadius: 6, border: '1.5px dashed #E8EAF6',
+            background: 'white', fontSize: '0.8rem', color: '#64748B', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            + {FR ? 'Ajouter une ligne' : 'Add row'}
+          </button>
+        </div>
+
+        <div style={{ padding: '12px 24px 20px', borderTop: '1px solid #E8EAF6', display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.75rem', color: '#94A3B8', marginRight: 'auto' }}>
+            {rows.length} {FR ? 'personne(s)' : 'person/people'}
+          </span>
+          <button onClick={() => onClose(0)} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #E8EAF6', background: 'white', fontSize: '0.85rem', cursor: 'pointer', color: '#374151' }}>
+            {FR ? 'Annuler' : 'Cancel'}
+          </button>
+          <button
+            onClick={handleImport}
+            disabled={importing}
+            style={{
+              padding: '8px 20px', borderRadius: 8, border: 'none',
+              background: '#F0194A', color: 'white', fontSize: '0.85rem', fontWeight: 700,
+              cursor: importing ? 'not-allowed' : 'pointer', opacity: importing ? 0.7 : 1,
+            }}
+          >
+            {importing ? (FR ? 'Importation...' : 'Importing...') : (FR ? 'Importer' : 'Import')}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const FILTER_OPTIONS = ['all', 'awaitingADPSend', 'adpSentPending', 'missingDocuments', 'podPending', 'fullyComplete']
 
 export default function OnboardingTracker() {
   const language = useStore((s) => s.language)
   const role = useStore((s) => s.role)
   const candidates = useStore((s) => s.candidates)
+  const importDirectToOnboarding = useStore((s) => s.importDirectToOnboarding)
+  const addToast = useStore((s) => s.addToast)
   const [filter, setFilter] = useState('all')
   const [filterRegion, setFilterRegion] = useState('all')
   const [filterOffice, setFilterOffice] = useState('')
@@ -423,9 +731,11 @@ export default function OnboardingTracker() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [sortBy, setSortBy] = useState('newest')
+  const [showExport, setShowExport] = useState(false)
+  const [showImport, setShowImport] = useState(false)
 
-  // Active hires: non-historical with username
-  // + 2026 historical in-progress (POD not yet activated) — already active in the real system
+  const isAdmin = role === 'admin'
+
   const hist2026InProgress = candidates.filter((c) =>
     c.isHistorical &&
     !c.onboarding?.podActivated &&
@@ -494,15 +804,49 @@ export default function OnboardingTracker() {
     { key: 'fullyComplete',   label: language === 'FR' ? 'Complété' : 'Complete',   color: '#2DCDB8' },
   ]
 
+  const handleImportDone = (count) => {
+    setShowImport(false)
+    if (count > 0) {
+      addToast(`${count} ${language === 'FR' ? 'personne(s) importée(s)' : 'person/people imported'}`, 'success')
+    }
+  }
+
+  const FR = language === 'FR'
+
   return (
     <div style={{ padding: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1E2769', margin: 0, letterSpacing: '-0.02em' }}>{t('onboarding', language)}</h1>
           <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '4px 0 0' }}>
-            {filtered.length} / {hired.length} {language === 'FR' ? 'candidat(e)s embauché(e)s' : 'hired candidates'}
+            {filtered.length} / {hired.length} {FR ? 'candidat(e)s embauché(e)s' : 'hired candidates'}
           </p>
         </div>
+        {isAdmin && (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => setShowImport(true)}
+              style={{
+                padding: '8px 16px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
+                border: '1.5px solid #E8EAF6', background: 'white', color: '#374151', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              ↑ {FR ? 'Importer' : 'Import'}
+            </button>
+            <button
+              onClick={() => setShowExport(true)}
+              style={{
+                padding: '8px 16px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
+                border: 'none', background: '#1E2769', color: 'white', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 6,
+                boxShadow: '0 2px 8px rgba(30,39,105,0.25)',
+              }}
+            >
+              ↓ {FR ? 'Exporter' : 'Export'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* KPI summary strip */}
@@ -546,13 +890,13 @@ export default function OnboardingTracker() {
             {OFFICES.map((o) => <option key={o.code} value={o.code}>{o.code} — {o.name}</option>)}
           </select>
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #E8EAF6', fontSize: '0.8rem', background: 'white', cursor: 'pointer' }}>
-            <option value="newest">{language === 'FR' ? '↓ Plus récents en premier' : '↓ Newest first'}</option>
-            <option value="oldest">{language === 'FR' ? '↑ Plus anciens en premier' : '↑ Oldest first'}</option>
-            <option value="name">{language === 'FR' ? 'A–Z Nom' : 'A–Z Name'}</option>
-            <option value="office">{language === 'FR' ? 'A–Z Bureau' : 'A–Z Office'}</option>
+            <option value="newest">{FR ? '↓ Plus récents en premier' : '↓ Newest first'}</option>
+            <option value="oldest">{FR ? '↑ Plus anciens en premier' : '↑ Oldest first'}</option>
+            <option value="name">{FR ? 'A–Z Nom' : 'A–Z Name'}</option>
+            <option value="office">{FR ? 'A–Z Bureau' : 'A–Z Office'}</option>
           </select>
           <span style={{ fontSize: '0.72rem', color: '#94A3B8', whiteSpace: 'nowrap' }}>
-            {language === 'FR' ? 'Complété:' : 'Completed:'}
+            {FR ? 'Complété:' : 'Completed:'}
           </span>
           <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
             style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #E8EAF6', fontSize: '0.75rem', fontFamily: 'IBM Plex Mono, monospace' }} />
@@ -589,7 +933,7 @@ export default function OnboardingTracker() {
           <span style={{ fontSize: '1rem' }}>⏳</span>
           <div style={{ fontSize: '0.8rem', color: '#92400E' }}>
             <strong>{awaitingProfile.length}</strong>{' '}
-            {language === 'FR'
+            {FR
               ? `embauché(e)${awaitingProfile.length > 1 ? 's' : ''} en attente de profil utilisateur — visible ici après création dans « Profils utilisateurs »`
               : `hired candidate${awaitingProfile.length > 1 ? 's' : ''} awaiting user profile — will appear here after profile created in "User Profiles"`}
           </div>
@@ -601,13 +945,31 @@ export default function OnboardingTracker() {
         <div style={{ background: 'white', border: '2px dashed #E8EAF6', borderRadius: 14, padding: '60px 24px', textAlign: 'center' }}>
           <div style={{ fontSize: '2rem', color: '#1E2769', marginBottom: 12 }}>✦</div>
           <div style={{ color: '#94A3B8', fontSize: '0.875rem' }}>
-            {hired.length === 0 ? t('emptyOnboarding', language) : (language === 'FR' ? 'Aucun résultat' : 'No results match your filters')}
+            {hired.length === 0 ? t('emptyOnboarding', language) : (FR ? 'Aucun résultat' : 'No results match your filters')}
           </div>
         </div>
       ) : (
         sorted.map((c) => (
           <OnboardingRow key={c.id} candidate={c} language={language} role={role} />
         ))
+      )}
+
+      {/* Export modal */}
+      {showExport && (
+        <ExportModal
+          candidates={hired}
+          language={language}
+          onClose={() => setShowExport(false)}
+        />
+      )}
+
+      {/* Import modal */}
+      {showImport && (
+        <ImportModal
+          language={language}
+          onClose={handleImportDone}
+          onImport={importDirectToOnboarding}
+        />
       )}
     </div>
   )

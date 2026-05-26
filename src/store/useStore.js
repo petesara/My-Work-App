@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { OFFICES } from '../data/offices'
+import { OFFICES, CHARITIES } from '../data/offices'
 
 let toastId = 0
 
@@ -8,6 +8,7 @@ const savedRole = localStorage.getItem('ats-role')
 const savedLang = localStorage.getItem('ats-lang') || 'EN'
 const savedOffices = JSON.parse(localStorage.getItem('ats-offices') || '[]')
 const savedManagers = JSON.parse(localStorage.getItem('ats-managers') || 'null')
+const savedCharities = JSON.parse(localStorage.getItem('ats-charities') || 'null')
 
 function fire(path, method, body) {
   fetch(path, {
@@ -24,6 +25,7 @@ const useStore = create((set, get) => ({
   doNotHireList: [],
   managers: savedManagers || OFFICES.map(o => ({ ...o })),
   assignedOffices: savedOffices,
+  charities: savedCharities || [...CHARITIES],
   toasts: [],
   openAddPanel: false,
   editingCandidateId: null,
@@ -143,6 +145,50 @@ const useStore = create((set, get) => ({
     }))
     const updated = get().managers
     localStorage.setItem('ats-managers', JSON.stringify(updated))
+  },
+
+  addCharity: (name) => {
+    const trimmed = name.trim().toUpperCase()
+    if (!trimmed) return
+    set(s => {
+      if (s.charities.includes(trimmed)) return {}
+      const updated = [...s.charities, trimmed].sort()
+      localStorage.setItem('ats-charities', JSON.stringify(updated))
+      return { charities: updated }
+    })
+  },
+
+  removeCharity: (name) => {
+    set(s => {
+      const updated = s.charities.filter(c => c !== name)
+      localStorage.setItem('ats-charities', JSON.stringify(updated))
+      return { charities: updated }
+    })
+  },
+
+  importDirectToOnboarding: (records) => {
+    const state = get()
+    const existing = new Set(state.candidates.map(c => (c.payrollId || '').trim()).filter(Boolean))
+    const toAdd = records.map(r => {
+      const id = Date.now().toString() + Math.random().toString(36).slice(2)
+      const username = ((r.firstName[0] || '') + (r.lastName || '')).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12)
+      const password = (r.phone || '').replace(/\D/g, '').slice(-4)
+      return {
+        id, createdAt: new Date().toISOString(),
+        firstName: r.firstName, lastName: r.lastName,
+        phone: r.phone || '', email: r.email || '',
+        payrollId: r.payrollId || '', officeCode: r.officeCode || '',
+        day0: r.day0 || '',
+        status: 'Hired', hiredAt: new Date().toISOString(),
+        isRehire: !!r.payrollId && existing.has((r.payrollId || '').trim()),
+        username, password,
+        languagePreference: 'EN',
+        onboarding: { userCreated: true, userCreatedAt: new Date().toISOString() },
+      }
+    })
+    set(s => ({ candidates: [...s.candidates, ...toAdd] }))
+    toAdd.forEach(c => fire('/api/candidates', 'POST', c))
+    return toAdd.length
   },
 
   addToast: (message, type = 'success') => {

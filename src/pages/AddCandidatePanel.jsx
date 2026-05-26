@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import useStore from '../store/useStore'
 import { t } from '../data/translations'
-import { OFFICES, CHARITIES, SOURCES, STATUSES, AVAILABILITY, REGIONS } from '../data/offices'
+import { OFFICES, SOURCES, STATUSES, AVAILABILITY, REGIONS } from '../data/offices'
 
 function formatPhone(value) {
   const digits = value.replace(/\D/g, '').slice(0, 10)
@@ -65,6 +65,7 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
   const addCandidate = useStore((s) => s.addCandidate)
   const updateCandidate = useStore((s) => s.updateCandidate)
   const addToast = useStore((s) => s.addToast)
+  const charities = useStore((s) => s.charities)
 
   const [form, setForm] = useState(EMPTY_FORM)
   const [errors, setErrors] = useState({})
@@ -658,7 +659,7 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
                 <label style={lbl}>{t('charity', language)} {role === 'operations' ? '*' : ''}</label>
                 <select style={{ ...inp('charity'), cursor: 'pointer' }} value={form.charity} onChange={(e) => setField('charity', e.target.value)} onFocus={inpFocus} onBlur={inpBlur}>
                   <option value="">—</option>
-                  {CHARITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {charities.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
                 {errors.charity && <div style={err}>{errors.charity}</div>}
               </div>

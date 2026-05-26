@@ -8,12 +8,32 @@ export default function ManagerDirectory() {
   const updateManager = useStore((s) => s.updateManager)
   const addToast = useStore((s) => s.addToast)
   const role = useStore((s) => s.role)
+  const charities = useStore((s) => s.charities)
+  const addCharity = useStore((s) => s.addCharity)
+  const removeCharity = useStore((s) => s.removeCharity)
 
   const [search, setSearch] = useState('')
   const [editingCell, setEditingCell] = useState(null)
   const [editValue, setEditValue] = useState('')
+  const [newCharity, setNewCharity] = useState('')
 
   const canEdit = role === 'admin'
+  const FR = language === 'FR'
+
+  const handleAddCharity = (e) => {
+    e.preventDefault()
+    const trimmed = newCharity.trim().toUpperCase()
+    if (!trimmed) return
+    addCharity(trimmed)
+    setNewCharity('')
+    addToast(t('updatedSuccessfully', language), 'success')
+  }
+
+  const handleRemoveCharity = (name) => {
+    if (!window.confirm(FR ? `Supprimer le code "${name}"?` : `Remove charity code "${name}"?`)) return
+    removeCharity(name)
+    addToast(t('deletedSuccessfully', language), 'success')
+  }
 
   const filtered = [...managers]
     .filter((m) => {
@@ -107,6 +127,57 @@ export default function ManagerDirectory() {
           style={{ padding: '7px 12px', borderRadius: 6, border: '1px solid #E5E7EB', fontSize: '0.8rem', width: 220, outline: 'none' }}
         />
       </div>
+
+      {/* Charity codes section — admin only */}
+      {canEdit && (
+        <div style={{ marginBottom: 24, background: 'white', border: '1px solid #E8EAF6', borderRadius: 12, padding: '18px 20px', boxShadow: '0 1px 3px rgba(30,39,105,0.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1E2769' }}>
+                {FR ? 'Codes de charité' : 'Charity Codes'}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#94A3B8', marginTop: 2 }}>
+                {charities.length} {FR ? 'code(s) actif(s)' : 'active code(s)'}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+            {charities.map(name => (
+              <div key={name} style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: '#F4F5FB', borderRadius: 20,
+                padding: '4px 10px 4px 12px', border: '1px solid #E8EAF6',
+              }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#1E2769', fontFamily: 'IBM Plex Mono, monospace' }}>{name}</span>
+                <button
+                  onClick={() => handleRemoveCharity(name)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', padding: 0, fontSize: '0.75rem', lineHeight: 1, display: 'flex', alignItems: 'center' }}
+                  title={FR ? 'Supprimer' : 'Remove'}
+                >✕</button>
+              </div>
+            ))}
+          </div>
+          <form onSubmit={handleAddCharity} style={{ display: 'flex', gap: 8 }}>
+            <input
+              value={newCharity}
+              onChange={e => setNewCharity(e.target.value)}
+              placeholder={FR ? 'Nouveau code (ex: UNICEF)' : 'New code (e.g. UNICEF)'}
+              style={{
+                padding: '7px 12px', borderRadius: 7, border: '1.5px solid #E8EAF6',
+                fontSize: '0.82rem', width: 200, outline: 'none',
+                fontFamily: 'IBM Plex Mono, monospace', textTransform: 'uppercase',
+              }}
+              maxLength={20}
+            />
+            <button type="submit" style={{
+              padding: '7px 16px', borderRadius: 7, border: 'none',
+              background: '#1E2769', color: 'white', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
+            }}>
+              + {FR ? 'Ajouter' : 'Add'}
+            </button>
+          </form>
+        </div>
+      )}
 
       <div style={{ borderRadius: 10, border: '1px solid #E5E7EB', background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
