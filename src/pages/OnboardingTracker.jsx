@@ -154,14 +154,12 @@ function OnboardingRow({ candidate, language, role, selected, onToggleSelect }) 
       {/* Summary row */}
       <div style={{ display: 'flex', alignItems: 'center' }}>
         {/* Checkbox column */}
-        <div
-          style={{ padding: '12px 8px 12px 14px', flexShrink: 0 }}
-          onClick={e => { e.stopPropagation(); onToggleSelect(candidate.id) }}
-        >
+        <div style={{ padding: '12px 8px 12px 14px', flexShrink: 0 }}>
           <input
             type="checkbox"
             checked={selected}
-            onChange={() => onToggleSelect(candidate.id)}
+            onChange={e => { e.stopPropagation(); onToggleSelect(candidate.id) }}
+            onClick={e => e.stopPropagation()}
             style={{ width: 15, height: 15, accentColor: '#1E2769', cursor: 'pointer', display: 'block' }}
           />
         </div>
