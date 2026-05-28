@@ -34,6 +34,23 @@ const EMPTY_FORM = {
   username: '', password: '',
 }
 
+function ReadOnlyField({ label, value, mono = false }) {
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: '0.63rem', fontWeight: 700, color: '#94A3B8', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>
+      <div style={{
+        padding: '9px 12px', borderRadius: 8, background: '#F4F5FB',
+        border: '1.5px solid #E8EAF6', fontSize: '0.875rem',
+        color: '#6B7280', fontFamily: mono ? 'IBM Plex Mono, monospace' : 'inherit',
+        display: 'flex', alignItems: 'center', gap: 6, minHeight: 38,
+      }}>
+        <span style={{ fontSize: '0.65rem', color: '#CBD5E1' }}>🔒</span>
+        <span>{value || <span style={{ color: '#CBD5E1', fontStyle: 'italic' }}>—</span>}</span>
+      </div>
+    </div>
+  )
+}
+
 function PhaseHeader({ number, title, owner, complete, pending }) {
   const colors = { 1: '#F0194A', 2: '#3B82F6', 3: '#8B5CF6' }
   const color = colors[number]
@@ -206,6 +223,8 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
 
   const FR = language === 'FR'
   const req = FR ? 'Requis' : 'Required'
+  // Ops editing an existing candidate: can only change preferred name, status, notes
+  const opsLocked = role === 'operations' && isEdit
 
   // Phase 1 complete = all recruitment fields filled
   const phase1Complete = !!(
@@ -479,116 +498,167 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
               complete={phase1Complete}
             />
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div style={fw}>
-                <label style={lbl}>{t('firstName', language)} *</label>
-                <input style={inp('firstName')} value={form.firstName} onChange={(e) => setField('firstName', e.target.value)} onBlur={(e) => { inpBlur(e); checkDuplicates(form) }} onFocus={inpFocus} />
-                {errors.firstName && <div style={err}>{errors.firstName}</div>}
-              </div>
-              <div style={fw}>
-                <label style={lbl}>{t('lastName', language)} *</label>
-                <input style={inp('lastName')} value={form.lastName} onChange={(e) => setField('lastName', e.target.value)} onBlur={(e) => { inpBlur(e); checkDuplicates(form) }} onFocus={inpFocus} />
-                {errors.lastName && <div style={err}>{errors.lastName}</div>}
-              </div>
-            </div>
-            <div style={fw}>
-              <label style={lbl}>{t('preferredName', language)} <span style={{ fontWeight: 400, textTransform: 'none', color: '#9CA3AF', fontSize: '0.65rem' }}>({FR ? 'Optionnel' : 'Optional'})</span></label>
-              <input style={inp('preferredName')} value={form.preferredName} onChange={(e) => setField('preferredName', e.target.value)} onFocus={inpFocus} onBlur={inpBlur} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div style={fw}>
-                <label style={lbl}>{t('phone', language)} *</label>
-                <input style={inp('phone')} value={form.phone} onChange={handlePhoneChange} onBlur={(e) => { inpBlur(e); checkDuplicates(form) }} onFocus={inpFocus} placeholder="(XXX) XXX-XXXX" maxLength={14} />
-                {errors.phone && <div style={err}>{errors.phone}</div>}
-              </div>
-              <div style={fw}>
-                <label style={lbl}>{t('email', language)} *</label>
-                <input style={inp('email')} type="email" value={form.email} onChange={(e) => setField('email', e.target.value)} onBlur={(e) => { inpBlur(e); checkDuplicates(form) }} onFocus={inpFocus} />
-                {errors.email && <div style={err}>{errors.email}</div>}
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div style={fw}>
-                <label style={lbl}>{t('languagePreference', language)} *</label>
-                <div style={{ display: 'flex', gap: 16, paddingTop: 6 }}>
-                  {['EN', 'FR'].map((lang) => (
-                    <label key={lang} style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }}>
-                      <input type="radio" name="langPref" value={lang} checked={form.languagePreference === lang} onChange={() => setField('languagePreference', lang)} style={{ accentColor: '#F0194A' }} />
-                      {lang}
-                    </label>
-                  ))}
+            {/* When ops is editing, most Phase 1 fields are read-only */}
+            {opsLocked ? (
+              <>
+                <div style={{ background: '#F4F5FB', border: '1px solid #E8EAF6', borderRadius: 8, padding: '8px 12px', marginBottom: 14, fontSize: '0.72rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  🔒 {FR ? 'Les champs du recrutement sont en lecture seule. Vous pouvez modifier le nom préféré, le statut et les notes.' : 'Recruitment fields are read-only. You can edit preferred name, status, and notes.'}
                 </div>
-              </div>
-              <div style={fw}>
-                <label style={lbl}>{t('region', language)}</label>
-                <select style={{ ...inp('region'), cursor: 'pointer' }} value={form.region} onChange={(e) => setField('region', e.target.value)} onFocus={inpFocus} onBlur={inpBlur}>
-                  <option value="">—</option>
-                  {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
-                </select>
-              </div>
-            </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <ReadOnlyField label={t('firstName', language)} value={form.firstName} />
+                  <ReadOnlyField label={t('lastName', language)} value={form.lastName} />
+                </div>
+                <div style={fw}>
+                  <label style={lbl}>{t('preferredName', language)} <span style={{ fontWeight: 400, textTransform: 'none', color: '#9CA3AF', fontSize: '0.65rem' }}>({FR ? 'Optionnel' : 'Optional'})</span></label>
+                  <input style={inp('preferredName')} value={form.preferredName} onChange={(e) => setField('preferredName', e.target.value)} onFocus={inpFocus} onBlur={inpBlur} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <ReadOnlyField label={t('phone', language)} value={form.phone} mono />
+                  <ReadOnlyField label={t('email', language)} value={form.email} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <ReadOnlyField label={t('languagePreference', language)} value={form.languagePreference} />
+                  <ReadOnlyField label={t('region', language)} value={form.region} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <ReadOnlyField label={t('isRehire', language)} value={form.isRehire === 'yes' ? t('yes', language) : form.isRehire === 'no' ? t('no', language) : '—'} />
+                  <ReadOnlyField label={t('payrollId', language)} value={form.payrollId} mono />
+                </div>
+                <div style={{ marginTop: 4, paddingTop: 10, borderTop: '1px dashed #E8EAF6' }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+                    {FR ? 'Entrevue' : 'Interview'}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <ReadOnlyField label={t('source', language)} value={form.source} />
+                    <ReadOnlyField label={t('interviewDate', language)} value={form.interviewDate} mono />
+                  </div>
+                  <ReadOnlyField label={t('interviewer', language)} value={form.interviewer} />
+                  <div style={fw}>
+                    <label style={lbl}>{t('status', language)}</label>
+                    <select style={{ ...inp('status'), cursor: 'pointer' }} value={form.status} onChange={(e) => setField('status', e.target.value)} onFocus={inpFocus} onBlur={inpBlur}>
+                      {STATUSES.map((s) => <option key={s} value={s}>{t(s, language)}</option>)}
+                    </select>
+                  </div>
+                  <div style={fw}>
+                    <label style={lbl}>{t('notes', language)} <span style={{ fontWeight: 400, textTransform: 'none', color: '#9CA3AF', fontSize: '0.65rem' }}>({FR ? 'Optionnel' : 'Optional'})</span></label>
+                    <textarea style={{ ...inp('notes'), minHeight: 64, resize: 'vertical', fontFamily: 'IBM Plex Sans, sans-serif' }} value={form.notes} onChange={(e) => setField('notes', e.target.value)} onFocus={inpFocus} onBlur={inpBlur} />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div style={fw}>
+                    <label style={lbl}>{t('firstName', language)} *</label>
+                    <input style={inp('firstName')} value={form.firstName} onChange={(e) => setField('firstName', e.target.value)} onBlur={(e) => { inpBlur(e); checkDuplicates(form) }} onFocus={inpFocus} />
+                    {errors.firstName && <div style={err}>{errors.firstName}</div>}
+                  </div>
+                  <div style={fw}>
+                    <label style={lbl}>{t('lastName', language)} *</label>
+                    <input style={inp('lastName')} value={form.lastName} onChange={(e) => setField('lastName', e.target.value)} onBlur={(e) => { inpBlur(e); checkDuplicates(form) }} onFocus={inpFocus} />
+                    {errors.lastName && <div style={err}>{errors.lastName}</div>}
+                  </div>
+                </div>
+                <div style={fw}>
+                  <label style={lbl}>{t('preferredName', language)} <span style={{ fontWeight: 400, textTransform: 'none', color: '#9CA3AF', fontSize: '0.65rem' }}>({FR ? 'Optionnel' : 'Optional'})</span></label>
+                  <input style={inp('preferredName')} value={form.preferredName} onChange={(e) => setField('preferredName', e.target.value)} onFocus={inpFocus} onBlur={inpBlur} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div style={fw}>
+                    <label style={lbl}>{t('phone', language)} *</label>
+                    <input style={inp('phone')} value={form.phone} onChange={handlePhoneChange} onBlur={(e) => { inpBlur(e); checkDuplicates(form) }} onFocus={inpFocus} placeholder="(XXX) XXX-XXXX" maxLength={14} />
+                    {errors.phone && <div style={err}>{errors.phone}</div>}
+                  </div>
+                  <div style={fw}>
+                    <label style={lbl}>{t('email', language)} *</label>
+                    <input style={inp('email')} type="email" value={form.email} onChange={(e) => setField('email', e.target.value)} onBlur={(e) => { inpBlur(e); checkDuplicates(form) }} onFocus={inpFocus} />
+                    {errors.email && <div style={err}>{errors.email}</div>}
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div style={fw}>
+                    <label style={lbl}>{t('languagePreference', language)} *</label>
+                    <div style={{ display: 'flex', gap: 16, paddingTop: 6 }}>
+                      {['EN', 'FR'].map((lang) => (
+                        <label key={lang} style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }}>
+                          <input type="radio" name="langPref" value={lang} checked={form.languagePreference === lang} onChange={() => setField('languagePreference', lang)} style={{ accentColor: '#F0194A' }} />
+                          {lang}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={fw}>
+                    <label style={lbl}>{t('region', language)}</label>
+                    <select style={{ ...inp('region'), cursor: 'pointer' }} value={form.region} onChange={(e) => setField('region', e.target.value)} onFocus={inpFocus} onBlur={inpBlur}>
+                      <option value="">—</option>
+                      {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </div>
+                </div>
 
-            {/* Is Rehire */}
-            <div style={{ ...fw, padding: '10px 12px', background: 'white', borderRadius: 8, border: '1px solid #E8EAF6' }}>
-              <label style={{ ...lbl, marginBottom: 8 }}>{t('isRehire', language)} *</label>
-              <div style={{ display: 'flex', gap: 20 }}>
-                {[{ val: 'yes', label: t('yes', language), color: '#D97706' }, { val: 'no', label: t('no', language), color: '#374151' }].map(({ val, label, color }) => (
-                  <label key={val} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                    <input type="radio" name="isRehire" value={val} checked={form.isRehire === val} onChange={() => setField('isRehire', val)} style={{ accentColor: '#F0194A', width: 15, height: 15 }} />
-                    <span style={{ fontSize: '0.9rem', fontWeight: 600, color }}>{label}</span>
-                  </label>
-                ))}
-              </div>
-              {errors.isRehire && <div style={err}>{errors.isRehire}</div>}
-            </div>
+                {/* Is Rehire */}
+                <div style={{ ...fw, padding: '10px 12px', background: 'white', borderRadius: 8, border: '1px solid #E8EAF6' }}>
+                  <label style={{ ...lbl, marginBottom: 8 }}>{t('isRehire', language)} *</label>
+                  <div style={{ display: 'flex', gap: 20 }}>
+                    {[{ val: 'yes', label: t('yes', language), color: '#D97706' }, { val: 'no', label: t('no', language), color: '#374151' }].map(({ val, label, color }) => (
+                      <label key={val} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                        <input type="radio" name="isRehire" value={val} checked={form.isRehire === val} onChange={() => setField('isRehire', val)} style={{ accentColor: '#F0194A', width: 15, height: 15 }} />
+                        <span style={{ fontSize: '0.9rem', fontWeight: 600, color }}>{label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {errors.isRehire && <div style={err}>{errors.isRehire}</div>}
+                </div>
 
-            {form.isRehire !== '' && (
-              <div style={fw}>
-                <label style={lbl}>{t('payrollId', language)} {form.isRehire === 'yes' ? '*' : ''}</label>
-                <input style={inp('payrollId')} value={form.payrollId} onChange={(e) => setField('payrollId', e.target.value)} onFocus={inpFocus} onBlur={inpBlur} placeholder={form.isRehire === 'no' ? (FR ? 'Ajouté après embauche' : 'Added after hiring') : ''} />
-                {errors.payrollId && <div style={err}>{errors.payrollId}</div>}
-              </div>
+                {form.isRehire !== '' && (
+                  <div style={fw}>
+                    <label style={lbl}>{t('payrollId', language)} {form.isRehire === 'yes' ? '*' : ''}</label>
+                    <input style={inp('payrollId')} value={form.payrollId} onChange={(e) => setField('payrollId', e.target.value)} onFocus={inpFocus} onBlur={inpBlur} placeholder={form.isRehire === 'no' ? (FR ? 'Ajouté après embauche' : 'Added after hiring') : ''} />
+                    {errors.payrollId && <div style={err}>{errors.payrollId}</div>}
+                  </div>
+                )}
+
+                {/* Interview section */}
+                <div style={{ marginTop: 4, paddingTop: 10, borderTop: '1px dashed #E8EAF6' }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+                    {FR ? 'Entrevue' : 'Interview'}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div style={fw}>
+                      <label style={lbl}>{t('source', language)} *</label>
+                      <select style={{ ...inp('source'), cursor: 'pointer' }} value={form.source} onChange={(e) => setField('source', e.target.value)} onFocus={inpFocus} onBlur={inpBlur}>
+                        <option value="">—</option>
+                        {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                      {errors.source && <div style={err}>{errors.source}</div>}
+                    </div>
+                    <div style={fw}>
+                      <label style={lbl}>{t('interviewDate', language)} *</label>
+                      <input type="date" style={inp('interviewDate')} value={form.interviewDate} onChange={(e) => setField('interviewDate', e.target.value)} onFocus={inpFocus} onBlur={inpBlur} />
+                      {errors.interviewDate && <div style={err}>{errors.interviewDate}</div>}
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div style={fw}>
+                      <label style={lbl}>{t('interviewer', language)} *</label>
+                      <input style={inp('interviewer')} value={form.interviewer} onChange={(e) => setField('interviewer', e.target.value)} onFocus={inpFocus} onBlur={inpBlur} />
+                      {errors.interviewer && <div style={err}>{errors.interviewer}</div>}
+                    </div>
+                    <div style={fw}>
+                      <label style={lbl}>{t('status', language)} *</label>
+                      <select style={{ ...inp('status'), cursor: 'pointer' }} value={form.status} onChange={(e) => setField('status', e.target.value)} onFocus={inpFocus} onBlur={inpBlur}>
+                        {STATUSES.map((s) => <option key={s} value={s}>{t(s, language)}</option>)}
+                      </select>
+                      {errors.status && <div style={err}>{errors.status}</div>}
+                    </div>
+                  </div>
+                  <div style={fw}>
+                    <label style={lbl}>{t('notes', language)} <span style={{ fontWeight: 400, textTransform: 'none', color: '#9CA3AF', fontSize: '0.65rem' }}>({FR ? 'Optionnel' : 'Optional'})</span></label>
+                    <textarea style={{ ...inp('notes'), minHeight: 64, resize: 'vertical', fontFamily: 'IBM Plex Sans, sans-serif' }} value={form.notes} onChange={(e) => setField('notes', e.target.value)} onFocus={inpFocus} onBlur={inpBlur} />
+                  </div>
+                </div>
+              </>
             )}
-
-            {/* Interview section */}
-            <div style={{ marginTop: 4, paddingTop: 10, borderTop: '1px dashed #E8EAF6' }}>
-              <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
-                {FR ? 'Entrevue' : 'Interview'}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div style={fw}>
-                  <label style={lbl}>{t('source', language)} *</label>
-                  <select style={{ ...inp('source'), cursor: 'pointer' }} value={form.source} onChange={(e) => setField('source', e.target.value)} onFocus={inpFocus} onBlur={inpBlur}>
-                    <option value="">—</option>
-                    {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                  {errors.source && <div style={err}>{errors.source}</div>}
-                </div>
-                <div style={fw}>
-                  <label style={lbl}>{t('interviewDate', language)} *</label>
-                  <input type="date" style={inp('interviewDate')} value={form.interviewDate} onChange={(e) => setField('interviewDate', e.target.value)} onFocus={inpFocus} onBlur={inpBlur} />
-                  {errors.interviewDate && <div style={err}>{errors.interviewDate}</div>}
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div style={fw}>
-                  <label style={lbl}>{t('interviewer', language)} *</label>
-                  <input style={inp('interviewer')} value={form.interviewer} onChange={(e) => setField('interviewer', e.target.value)} onFocus={inpFocus} onBlur={inpBlur} />
-                  {errors.interviewer && <div style={err}>{errors.interviewer}</div>}
-                </div>
-                <div style={fw}>
-                  <label style={lbl}>{t('status', language)} *</label>
-                  <select style={{ ...inp('status'), cursor: 'pointer' }} value={form.status} onChange={(e) => setField('status', e.target.value)} onFocus={inpFocus} onBlur={inpBlur}>
-                    {STATUSES.map((s) => <option key={s} value={s}>{t(s, language)}</option>)}
-                  </select>
-                  {errors.status && <div style={err}>{errors.status}</div>}
-                </div>
-              </div>
-              <div style={fw}>
-                <label style={lbl}>{t('notes', language)} <span style={{ fontWeight: 400, textTransform: 'none', color: '#9CA3AF', fontSize: '0.65rem' }}>({FR ? 'Optionnel' : 'Optional'})</span></label>
-                <textarea style={{ ...inp('notes'), minHeight: 64, resize: 'vertical', fontFamily: 'IBM Plex Sans, sans-serif' }} value={form.notes} onChange={(e) => setField('notes', e.target.value)} onFocus={inpFocus} onBlur={inpBlur} />
-              </div>
-            </div>
           </div>
 
           {/* ══ PHASE 2 — EMPLOYMENT DETAILS (Ops) ══ */}
