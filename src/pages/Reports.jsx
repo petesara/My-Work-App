@@ -676,6 +676,194 @@ function RecruitmentReport({ candidates, dateFrom, dateTo, filterRegion, filterO
           </TableCard>
         </>
       )}
+
+      {/* ── Rehire Analysis ── */}
+      {(() => {
+        const rehires = filtered.filter(c => c.isRehire)
+        const newHires = filtered.filter(c => !c.isRehire)
+        if (rehires.length === 0 && newHires.length === 0) return null
+        const rehireShowed = rehires.filter(c => c.status !== 'No Show' && c.status !== 'Pending').length
+        const rehireHired = rehires.filter(c => c.status === 'Hired').length
+        const newShowed = newHires.filter(c => c.status !== 'No Show' && c.status !== 'Pending').length
+        const newHired = newHires.filter(c => c.status === 'Hired').length
+        const rehireRate = pct(rehireHired, rehireShowed)
+        const newRate = pct(newHired, newShowed)
+        return (
+          <>
+            <SectionDivider title={FR ? 'Réembauches vs Nouvelles candidatures' : 'Rehires vs New Candidates'} color="#F59E0B" />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <Card>
+                <div style={{ fontWeight: 700, fontSize: '0.78rem', color: '#D97706', marginBottom: 14, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  {FR ? '🔄 Réembauches' : '🔄 Rehires'} <span style={{ fontWeight: 400, color: '#9CA3AF' }}>({rehires.length})</span>
+                </div>
+                <div style={{ display: 'flex', gap: 16 }}>
+                  <div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#D97706', lineHeight: 1 }}>{rehireRate}%</div>
+                    <div style={{ fontSize: '0.68rem', color: '#9CA3AF', marginTop: 4 }}>{FR ? 'Taux embauche' : 'Hire rate'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#374151', lineHeight: 1 }}>{rehireHired}</div>
+                    <div style={{ fontSize: '0.68rem', color: '#9CA3AF', marginTop: 4 }}>{FR ? 'Embauché(e)s' : 'Hired'}</div>
+                  </div>
+                </div>
+              </Card>
+              <Card>
+                <div style={{ fontWeight: 700, fontSize: '0.78rem', color: '#1E2769', marginBottom: 14, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  {FR ? '✨ Nouveaux' : '✨ New Candidates'} <span style={{ fontWeight: 400, color: '#9CA3AF' }}>({newHires.length})</span>
+                </div>
+                <div style={{ display: 'flex', gap: 16 }}>
+                  <div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#1E2769', lineHeight: 1 }}>{newRate}%</div>
+                    <div style={{ fontSize: '0.68rem', color: '#9CA3AF', marginTop: 4 }}>{FR ? 'Taux embauche' : 'Hire rate'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#374151', lineHeight: 1 }}>{newHired}</div>
+                    <div style={{ fontSize: '0.68rem', color: '#9CA3AF', marginTop: 4 }}>{FR ? 'Embauché(e)s' : 'Hired'}</div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+            {(rehires.length > 0 && newHires.length > 0) && (
+              <div style={{ marginTop: 10, padding: '10px 14px', background: rehireRate > newRate ? '#F0FDF4' : '#FFF7ED', borderRadius: 8, border: `1px solid ${rehireRate > newRate ? '#BBF7D0' : '#FDE68A'}`, fontSize: '0.78rem', color: '#374151' }}>
+                {FR
+                  ? `Les réembauches ont un taux de conversion ${rehireRate > newRate ? `de ${rehireRate - newRate}pp supérieur` : `de ${newRate - rehireRate}pp inférieur`} aux nouveaux candidat(e)s.`
+                  : `Rehires have a hire rate ${rehireRate > newRate ? `${rehireRate - newRate}pp higher` : `${newRate - rehireRate}pp lower`} than new candidates.`}
+              </div>
+            )}
+          </>
+        )
+      })()}
+
+      {/* ── Medium Breakdown ── */}
+      {(() => {
+        const mediums = [...new Set(filtered.map(c => c.medium).filter(Boolean))]
+        if (mediums.length < 2) return null
+        const mediumRows = mediums.map(med => {
+          const mc = filtered.filter(c => c.medium === med)
+          const mcShowed = mc.filter(c => c.status !== 'No Show' && c.status !== 'Pending').length
+          const mcHired = mc.filter(c => c.status === 'Hired').length
+          const mcNoShow = mc.filter(c => c.status === 'No Show').length
+          return {
+            medium: med, total: mc.length, hired: mcHired,
+            hireRate: pct(mcHired, mcShowed),
+            noShowRate: pct(mcNoShow, mc.length - mc.filter(c => c.status === 'Pending').length),
+          }
+        }).sort((a, b) => b.total - a.total)
+        const medHireRates = mediumRows.map(m => m.hireRate)
+        const medStats = stats(medHireRates)
+        return (
+          <>
+            <SectionDivider title={FR ? 'Performance par médium' : 'Performance by Medium'} color="#8B5CF6" />
+            <TableCard title={FR ? 'Taux de conversion par médium' : 'Conversion Rate by Medium'} subtitle={FR ? '— Streets vs Doors vs Malls vs Phones' : '— compares recruiting channels'}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead><tr>
+                  {[FR ? 'Médium' : 'Medium', 'Total', FR ? 'Emb.' : 'Hired',
+                    FR ? 'Taux emb.' : 'Hire Rate', FR ? 'Taux absence' : 'No-Show Rate',
+                  ].map((h, i) => <th key={h} style={TH(i > 0)}>{h}</th>)}
+                </tr></thead>
+                <tbody>
+                  {mediumRows.map(m => (
+                    <tr key={m.medium} onMouseEnter={e => e.currentTarget.style.background = '#FAFAFA'} onMouseLeave={e => e.currentTarget.style.background = ''}>
+                      <td style={{ ...TD(true, '#1E2769'), paddingLeft: 20 }}>{m.medium}</td>
+                      <td style={TD(false, '#374151', true)}>{m.total}</td>
+                      <td style={TD(true, '#059669', true)}>{m.hired}</td>
+                      <td style={{ ...TD(true, m.hireRate >= 30 ? '#059669' : '#D97706', true) }}>
+                        {m.hireRate}%
+                        {m.total >= 3 && <VsBadge value={m.hireRate} mean={medStats.mean} higherIsBetter />}
+                      </td>
+                      <td style={{ ...TD(false, m.noShowRate > 20 ? '#DC2626' : '#9CA3AF', true) }}>
+                        {m.noShowRate}%
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableCard>
+          </>
+        )
+      })()}
+
+      {/* ── Language Breakdown ── */}
+      {(() => {
+        const enCandidates = filtered.filter(c => c.languagePreference !== 'FR')
+        const frCandidates = filtered.filter(c => c.languagePreference === 'FR')
+        if (!frCandidates.length) return null
+        const enShowed = enCandidates.filter(c => c.status !== 'No Show' && c.status !== 'Pending').length
+        const frShowed = frCandidates.filter(c => c.status !== 'No Show' && c.status !== 'Pending').length
+        const enHired = enCandidates.filter(c => c.status === 'Hired').length
+        const frHired = frCandidates.filter(c => c.status === 'Hired').length
+        return (
+          <>
+            <SectionDivider title={FR ? 'Répartition linguistique' : 'Language Breakdown'} color="#3B82F6" />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <StatCard label="EN Candidates" value={enCandidates.length}
+                sub={`${pct(enHired, enShowed)}% ${FR ? 'taux embauche' : 'hire rate'} · ${enHired} ${FR ? 'embauché(e)s' : 'hired'}`}
+                color="#1E2769" accent="#1E2769" small />
+              <StatCard label="FR Candidates" value={frCandidates.length}
+                sub={`${pct(frHired, frShowed)}% ${FR ? 'taux embauche' : 'hire rate'} · ${frHired} ${FR ? 'embauché(e)s' : 'hired'}`}
+                color="#3B82F6" accent="#3B82F6" small />
+            </div>
+          </>
+        )
+      })()}
+
+      {/* ── Interviewer Performance ── */}
+      {(() => {
+        const interviewerMap = {}
+        filtered.forEach(c => {
+          if (!c.interviewer) return
+          const key = c.interviewer.trim()
+          if (!interviewerMap[key]) interviewerMap[key] = { name: key, total: 0, showed: 0, hired: 0, noShow: 0 }
+          interviewerMap[key].total++
+          if (c.status !== 'No Show' && c.status !== 'Pending') interviewerMap[key].showed++
+          if (c.status === 'Hired') interviewerMap[key].hired++
+          if (c.status === 'No Show') interviewerMap[key].noShow++
+        })
+        const interviewerRows = Object.values(interviewerMap)
+          .filter(i => i.total >= 3)
+          .map(i => ({ ...i, hireRate: pct(i.hired, i.showed), noShowRate: pct(i.noShow, i.total) }))
+          .sort((a, b) => b.hired - a.hired)
+        if (interviewerRows.length < 2) return null
+        const intHireRates = interviewerRows.map(i => i.hireRate)
+        const intStats = stats(intHireRates)
+        return (
+          <>
+            <SectionDivider title={FR ? 'Performance par intervieweur' : 'Interviewer Performance'} color="#2DCDB8" />
+            <TableCard
+              title={FR ? 'Taux de conversion par intervieweur' : 'Conversion Rate by Interviewer'}
+              subtitle={FR ? '— minimum 3 candidat(e)s requis' : '— minimum 3 candidates required for inclusion'}
+            >
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead><tr>
+                  {[FR ? 'Intervieweur' : 'Interviewer', 'Total', FR ? 'Présenté(e)s' : 'Showed',
+                    FR ? 'Emb.' : 'Hired', FR ? 'Taux emb.' : 'Hire Rate', FR ? 'Absent(e)s' : 'No-Shows',
+                  ].map((h, i) => <th key={h} style={TH(i > 0)}>{h}</th>)}
+                </tr></thead>
+                <tbody>
+                  {interviewerRows.map(i => (
+                    <tr key={i.name} onMouseEnter={e => e.currentTarget.style.background = '#FAFAFA'} onMouseLeave={e => e.currentTarget.style.background = ''}>
+                      <td style={{ ...TD(true, '#1E2769'), paddingLeft: 20 }}>{i.name}</td>
+                      <td style={TD(false, '#374151', true)}>{i.total}</td>
+                      <td style={TD(false, '#374151', true)}>{i.showed}</td>
+                      <td style={TD(true, '#059669', true)}>{i.hired}</td>
+                      <td style={{ ...TD(true, i.hireRate >= 30 ? '#059669' : '#D97706', true) }}>
+                        {i.hireRate}%
+                        <VsBadge value={i.hireRate} mean={intStats.mean} higherIsBetter />
+                      </td>
+                      <td style={TD(false, '#9CA3AF', true)}>{i.noShow}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{ padding: '10px 20px', background: '#F9FAFB', borderTop: '1px solid #E8EAF6', fontSize: '0.7rem', color: '#9CA3AF' }}>
+                {FR
+                  ? `Moyenne du groupe: ${intStats.mean}% · Écart-type: ±${intStats.sd}pp`
+                  : `Group average: ${intStats.mean}% · Std dev: ±${intStats.sd}pp`}
+              </div>
+            </TableCard>
+          </>
+        )
+      })()}
     </div>
   )
 }
@@ -760,7 +948,7 @@ function AdminReport({ candidates, dateFrom, dateTo, filterRegion, filterOffice,
   }).filter(Boolean)
 
   const officeRows = allOffices.map(o => {
-    const oc = hiredCandidates.filter(c => c.officeCode === o.code)
+    const oc = hiredCandidates.filter(c => (c.officeCodes || [c.officeCode]).includes(o.code))
     if (!oc.length) return null
     const ocMissing = oc.filter(c => c.onboarding?.missingDocs && Object.values(c.onboarding.missingDocs).some(Boolean)).length
     const ocPodTimes = oc.filter(c => c.interviewDate && c.onboarding?.podActivatedDate)
@@ -1018,6 +1206,56 @@ function AdminReport({ candidates, dateFrom, dateTo, filterRegion, filterOffice,
           </TableCard>
         </>
       )}
+
+      {/* ── FR vs EN Office Onboarding ── */}
+      {(() => {
+        const frOffices = hiredCandidates.filter(c => {
+          const o = OFFICES.find(x => x.code === (c.officeCodes?.[0] || c.officeCode))
+          return o?.isFR
+        })
+        const enOffices = hiredCandidates.filter(c => {
+          const o = OFFICES.find(x => x.code === (c.officeCodes?.[0] || c.officeCode))
+          return o && !o.isFR
+        })
+        if (!frOffices.length || !enOffices.length) return null
+        const frPod = frOffices.filter(c => c.onboarding?.podActivatedDate).length
+        const enPod = enOffices.filter(c => c.onboarding?.podActivatedDate).length
+        const frMissing = frOffices.filter(c => c.onboarding?.missingDocs && Object.values(c.onboarding.missingDocs).some(Boolean)).length
+        const enMissing = enOffices.filter(c => c.onboarding?.missingDocs && Object.values(c.onboarding.missingDocs).some(Boolean)).length
+        return (
+          <>
+            <SectionDivider title={FR ? 'Bureaux francophones vs anglophones' : 'FR vs EN Office Onboarding'} color="#3B82F6" />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <Card>
+                <div style={{ fontWeight: 700, fontSize: '0.78rem', color: '#3B82F6', marginBottom: 14, textTransform: 'uppercase', letterSpacing: '0.06em' }}>🇫🇷 {FR ? 'Bureaux francophones' : 'French Offices'} ({frOffices.length})</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#059669', lineHeight: 1 }}>{pct(frPod, frOffices.length)}%</div>
+                    <div style={{ fontSize: '0.68rem', color: '#9CA3AF', marginTop: 3 }}>POD Rate</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: frMissing / frOffices.length > 0.2 ? '#DC2626' : '#059669', lineHeight: 1 }}>{pct(frMissing, frOffices.length)}%</div>
+                    <div style={{ fontSize: '0.68rem', color: '#9CA3AF', marginTop: 3 }}>{FR ? 'Docs manq.' : 'Missing Docs'}</div>
+                  </div>
+                </div>
+              </Card>
+              <Card>
+                <div style={{ fontWeight: 700, fontSize: '0.78rem', color: '#1E2769', marginBottom: 14, textTransform: 'uppercase', letterSpacing: '0.06em' }}>🇨🇦 {FR ? 'Bureaux anglophones' : 'English Offices'} ({enOffices.length})</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#059669', lineHeight: 1 }}>{pct(enPod, enOffices.length)}%</div>
+                    <div style={{ fontSize: '0.68rem', color: '#9CA3AF', marginTop: 3 }}>POD Rate</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: enMissing / enOffices.length > 0.2 ? '#DC2626' : '#059669', lineHeight: 1 }}>{pct(enMissing, enOffices.length)}%</div>
+                    <div style={{ fontSize: '0.68rem', color: '#9CA3AF', marginTop: 3 }}>{FR ? 'Docs manq.' : 'Missing Docs'}</div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </>
+        )
+      })()}
     </div>
   )
 }
@@ -1089,7 +1327,7 @@ function OperationsReport({ candidates, dateFrom, dateTo, filterRegion, filterOf
   }).filter(Boolean)
 
   const officeRows = allOffices.map(o => {
-    const oc = filtered.filter(c => c.officeCode === o.code)
+    const oc = filtered.filter(c => (c.officeCodes || [c.officeCode]).includes(o.code))
     if (!oc.length) return null
     const ocShowed = oc.length - oc.filter(c => c.status === 'No Show').length - oc.filter(c => c.status === 'Pending').length
     const ocHired = oc.filter(c => c.status === 'Hired').length
@@ -1316,6 +1554,52 @@ function OperationsReport({ candidates, dateFrom, dateTo, filterRegion, filterOf
           </TableCard>
         </>
       )}
+
+      {/* ── Medium Breakdown (Operations) ── */}
+      {(() => {
+        const mediums = [...new Set(filtered.map(c => c.medium).filter(Boolean))]
+        if (mediums.length < 2) return null
+        const mediumRows = mediums.map(med => {
+          const mc = filtered.filter(c => c.medium === med)
+          const mcShowed = mc.filter(c => c.status !== 'No Show' && c.status !== 'Pending').length
+          const mcHired = mc.filter(c => c.status === 'Hired').length
+          const mcPod = mc.filter(c => c.onboarding?.podActivatedDate).length
+          return {
+            medium: med, total: mc.length, hired: mcHired, podActive: mcPod,
+            hireRate: pct(mcHired, mcShowed),
+            podRate: pct(mcPod, mcHired),
+            endToEnd: pct(mcPod, mc.length),
+          }
+        }).sort((a, b) => b.total - a.total)
+        return (
+          <>
+            <SectionDivider title={FR ? 'Performance par médium' : 'Performance by Medium'} color="#8B5CF6" />
+            <TableCard title={FR ? 'Vue combinée par médium' : 'Combined View by Medium'}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead><tr>
+                  {[FR ? 'Médium' : 'Medium', 'Total', FR ? 'Emb.' : 'Hired',
+                    FR ? 'Taux emb.' : 'Hire Rate', FR ? 'POD Actif' : 'POD Active',
+                    FR ? 'Taux POD' : 'POD Rate', FR ? 'Eff. pipeline' : 'Pipeline Eff.',
+                  ].map((h, i) => <th key={h} style={TH(i > 0)}>{h}</th>)}
+                </tr></thead>
+                <tbody>
+                  {mediumRows.map(m => (
+                    <tr key={m.medium} onMouseEnter={e => e.currentTarget.style.background = '#FAFAFA'} onMouseLeave={e => e.currentTarget.style.background = ''}>
+                      <td style={{ ...TD(true, '#1E2769'), paddingLeft: 20 }}>{m.medium}</td>
+                      <td style={TD(false, '#374151', true)}>{m.total}</td>
+                      <td style={TD(true, '#2DCDB8', true)}>{m.hired}</td>
+                      <td style={{ ...TD(true, m.hireRate >= 30 ? '#059669' : '#D97706', true) }}>{m.hireRate}%</td>
+                      <td style={TD(true, '#059669', true)}>{m.podActive}</td>
+                      <td style={{ ...TD(true, m.podRate >= 80 ? '#059669' : '#D97706', true) }}>{m.podRate}%</td>
+                      <td style={{ ...TD(true, m.endToEnd >= 30 ? '#059669' : '#D97706', true) }}>{m.endToEnd}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableCard>
+          </>
+        )
+      })()}
     </div>
   )
 }
