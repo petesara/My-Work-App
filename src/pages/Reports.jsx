@@ -336,7 +336,8 @@ function RecruitmentReport({ candidates, dateFrom, dateTo, filterRegion, filterO
   const FR = language === 'FR'
 
   const filtered = useMemo(() => candidates.filter((c) => {
-    if (filterOffice && c.officeCode !== filterOffice) return false
+    if (c.isHistorical) return false
+    if (filterOffice && !(c.officeCodes || [c.officeCode]).includes(filterOffice)) return false
     if (filterRegion !== 'all' && c.region !== filterRegion) return false
     const d = c.interviewDate || c.createdAt?.slice(0, 10) || ''
     if (dateFrom && d < dateFrom) return false
@@ -395,7 +396,7 @@ function RecruitmentReport({ candidates, dateFrom, dateTo, filterRegion, filterO
 
   // Only include offices with enough candidates for meaningful comparison
   const officeRows = allOffices.map(o => {
-    const oc = filtered.filter(c => c.officeCode === o.code)
+    const oc = filtered.filter(c => (c.officeCodes || [c.officeCode]).includes(o.code))
     if (!oc.length) return null
     const ocShowed = oc.length - oc.filter(c => c.status === 'No Show').length - oc.filter(c => c.status === 'Pending').length
     const ocHired = oc.filter(c => c.status === 'Hired').length
@@ -684,8 +685,9 @@ function AdminReport({ candidates, dateFrom, dateTo, filterRegion, filterOffice,
   const FR = language === 'FR'
 
   const hiredCandidates = useMemo(() => candidates.filter((c) => {
+    if (c.isHistorical) return false
     if (c.status !== 'Hired') return false
-    if (filterOffice && c.officeCode !== filterOffice) return false
+    if (filterOffice && !(c.officeCodes || [c.officeCode]).includes(filterOffice)) return false
     if (filterRegion !== 'all' && c.region !== filterRegion) return false
     const d = c.interviewDate || c.createdAt?.slice(0, 10) || ''
     if (dateFrom && d < dateFrom) return false
@@ -1025,7 +1027,8 @@ function OperationsReport({ candidates, dateFrom, dateTo, filterRegion, filterOf
   const FR = language === 'FR'
 
   const filtered = useMemo(() => candidates.filter((c) => {
-    if (filterOffice && c.officeCode !== filterOffice) return false
+    if (c.isHistorical) return false
+    if (filterOffice && !(c.officeCodes || [c.officeCode]).includes(filterOffice)) return false
     if (filterRegion !== 'all' && c.region !== filterRegion) return false
     const d = c.interviewDate || c.createdAt?.slice(0, 10) || ''
     if (dateFrom && d < dateFrom) return false

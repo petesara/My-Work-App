@@ -27,7 +27,7 @@ const EMPTY_FORM = {
   firstName: '', lastName: '', preferredName: '',
   phone: '', email: '', languagePreference: 'EN',
   isRehire: '', payrollId: '',
-  region: '', officeCode: '', manager: '', medium: '',
+  region: '', officeCodes: [], manager: '', medium: '',
   charity: '', availability: '', day0: '',
   source: '', interviewDate: new Date().toISOString().slice(0, 10),
   interviewer: '', status: 'Pending', notes: '',
@@ -106,13 +106,13 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
           phone: c.phone || '', email: c.email || '', languagePreference: c.languagePreference || 'EN',
           isRehire: c.isRehire !== undefined ? (c.isRehire ? 'yes' : 'no') : '',
           payrollId: c.payrollId || '', region: c.region || '',
-          officeCode: c.officeCode || '', manager: c.manager || '', medium: c.medium || '',
+          officeCodes: c.officeCodes || (c.officeCode ? [c.officeCode] : []), manager: c.manager || '', medium: c.medium || '',
           charity: c.charity || '', availability: c.availability || '', day0: c.day0 || '',
           source: c.source || '', interviewDate: c.interviewDate || new Date().toISOString().slice(0, 10),
           interviewer: c.interviewer || '', status: c.status || 'Pending', notes: c.notes || '',
           username: c.username || '', password: c.password || '',
         })
-        setOfficeSearch(c.officeCode || '')
+        setOfficeSearch('')
       }
     } else {
       setForm({ ...EMPTY_FORM, interviewDate: new Date().toISOString().slice(0, 10) })
@@ -204,18 +204,40 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
   }
 
   const handleOfficeSelect = (office) => {
-    setForm((f) => ({
-      ...f,
-      officeCode: office.code, manager: office.manager,
-      region: office.region, medium: office.medium,
-      languagePreference: office.isFR ? 'FR' : f.languagePreference,
-    }))
-    setOfficeSearch(office.code)
+    setForm((f) => {
+      if (f.officeCodes.includes(office.code)) return f
+      const newCodes = [...f.officeCodes, office.code]
+      const primary = OFFICES.find(o => o.code === newCodes[0])
+      return {
+        ...f,
+        officeCodes: newCodes,
+        manager: primary?.manager || f.manager,
+        region: primary?.region || f.region,
+        medium: primary?.medium || f.medium,
+        languagePreference: newCodes.length === 1 && primary?.isFR ? 'FR' : f.languagePreference,
+      }
+    })
+    setOfficeSearch('')
     setOfficeDropdownOpen(false)
-    if (errors.officeCode) setErrors((e) => ({ ...e, officeCode: '' }))
+    if (errors.officeCodes) setErrors((e) => ({ ...e, officeCodes: '' }))
+  }
+
+  const removeOffice = (code) => {
+    setForm((f) => {
+      const newCodes = f.officeCodes.filter(c => c !== code)
+      const primary = newCodes.length > 0 ? OFFICES.find(o => o.code === newCodes[0]) : null
+      return {
+        ...f,
+        officeCodes: newCodes,
+        manager: primary?.manager || '',
+        region: primary?.region || '',
+        medium: primary?.medium || '',
+      }
+    })
   }
 
   const filteredOffices = OFFICES.filter((o) => {
+    if (form.officeCodes.includes(o.code)) return false
     const q = officeSearch.toLowerCase()
     return o.code.toLowerCase().includes(q) || o.name.toLowerCase().includes(q) ||
       o.city.toLowerCase().includes(q) || o.manager.toLowerCase().includes(q)
@@ -236,7 +258,7 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
     form.source && form.interviewDate && form.interviewer.trim()
   )
   // Phase 2 complete = ops employment fields filled
-  const phase2Complete = !!(form.officeCode && form.charity && form.availability)
+  const phase2Complete = !!(form.officeCodes.length > 0 && form.charity && form.availability)
 
   const validate = () => {
     const errs = {}
@@ -252,7 +274,7 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
     if (!form.interviewer.trim()) errs.interviewer = req
     // Phase 2 required for Ops
     if (role === 'operations') {
-      if (!form.officeCode) errs.officeCode = req
+      if (form.officeCodes.length === 0) errs.officeCodes = req
       if (!form.charity) errs.charity = req
       if (!form.availability) errs.availability = req
     }
@@ -283,7 +305,7 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
       phone: form.phone, email: form.email.trim().toLowerCase(),
       languagePreference: form.languagePreference,
       isRehire: form.isRehire === 'yes', payrollId: form.payrollId.trim(),
-      region: form.region, officeCode: form.officeCode,
+      region: form.region, officeCode: form.officeCodes[0] || '', officeCodes: form.officeCodes,
       manager: form.manager, medium: form.medium,
       charity: form.charity, availability: form.availability, day0: form.day0,
       source: form.source, interviewDate: form.interviewDate,
@@ -338,7 +360,7 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
   const lbl = { display: 'block', fontSize: '0.63rem', fontWeight: 700, color: '#94A3B8', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.08em' }
   const err = { fontSize: '0.68rem', color: '#EF4444', marginTop: 3 }
   const fw = { marginBottom: 12 }
-  const selectedOffice = OFFICES.find((o) => o.code === form.officeCode)
+  const primaryOfficeObj = OFFICES.find((o) => o.code === form.officeCodes[0])
 
   // Is Phase 2 editable? Ops always, Recruitment can edit if they want to add employment details too
   const phase2Editable = role === 'operations' || role === 'recruitment'
@@ -415,7 +437,7 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
                 return (
                   <div key={d.id} style={{ fontSize: '0.75rem', color: '#7C2D12', marginBottom: 4, padding: '6px 10px', background: '#FFEDD5', borderRadius: 4, lineHeight: 1.6 }}>
                     <strong>{d.firstName} {d.lastName}</strong>
-                    {d.officeCode && <span> · {d.officeCode}</span>}
+                    {(d.officeCodes?.length > 0 || d.officeCode) && <span> · {d.officeCodes?.join(', ') || d.officeCode}</span>}
                     {d.payrollId && <span> · ID: <strong style={{ fontFamily: 'IBM Plex Mono, monospace' }}>{d.payrollId}</strong></span>}
                     <span> · {FR ? 'Année' : 'Year'}: <strong>{year}</strong></span>
                     {podAt && <span> · POD: {podAt}</span>}
@@ -456,7 +478,7 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
               <div style={{ fontWeight: 700, color: '#92400E', fontSize: '0.875rem', marginBottom: 8 }}>⚠ {t('duplicateWarning', language)}</div>
               {duplicates.map((d) => (
                 <div key={d.id} style={{ fontSize: '0.75rem', color: '#78350F', marginBottom: 4, padding: '6px 8px', background: '#FEF3C7', borderRadius: 4 }}>
-                  <strong>{d.firstName} {d.lastName}</strong> · {d.officeCode || d.region || '—'} · {d.status} · {d.payrollId || '—'} · {d.interviewDate || (d.createdAt || '').slice(0, 10)}
+                  <strong>{d.firstName} {d.lastName}</strong> · {(d.officeCodes?.join(', ') || d.officeCode || d.region || '—')} · {d.status} · {d.payrollId || '—'} · {d.interviewDate || (d.createdAt || '').slice(0, 10)}
                 </div>
               ))}
               {role === 'operations' && <div style={{ fontSize: '0.75rem', color: '#92400E', marginTop: 8, fontStyle: 'italic' }}>{t('rehireCheckOps', language)}</div>}
@@ -683,17 +705,31 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
               </div>
             )}
 
-            {/* Office Code */}
+            {/* Office Code multi-select */}
             <div style={fw} ref={officeRef}>
               <label style={lbl}>{t('officeCode', language)} {role === 'operations' ? '*' : ''}</label>
+              {form.officeCodes.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 7 }}>
+                  {form.officeCodes.map(code => {
+                    const o = OFFICES.find(x => x.code === code)
+                    return (
+                      <div key={code} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', background: '#EEF0FF', borderRadius: 20, border: '1px solid #C7CAEA' }}>
+                        <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontWeight: 700, fontSize: '0.78rem', color: '#1E2769' }}>{code}</span>
+                        {o && <span style={{ fontSize: '0.7rem', color: '#6B7280' }}>{o.name}</span>}
+                        <button onMouseDown={() => removeOffice(code)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', fontSize: '1rem', lineHeight: 1, padding: '0 0 0 2px' }}>×</button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
               <div style={{ position: 'relative' }}>
                 <input
-                  style={inp('officeCode')}
+                  style={inp('officeCodes')}
                   value={officeSearch}
-                  onChange={(e) => { setOfficeSearch(e.target.value); setOfficeDropdownOpen(true); if (!e.target.value) setForm((f) => ({ ...f, officeCode: '', manager: '', medium: '' })) }}
+                  onChange={(e) => { setOfficeSearch(e.target.value); setOfficeDropdownOpen(true) }}
                   onFocus={(e) => { inpFocus(e); setOfficeDropdownOpen(true) }}
                   onBlur={inpBlur}
-                  placeholder={FR ? 'Rechercher un bureau...' : 'Search office code...'}
+                  placeholder={FR ? 'Rechercher et ajouter un bureau...' : 'Search and add office code...'}
                   autoComplete="off"
                 />
                 {officeDropdownOpen && filteredOffices.length > 0 && (
@@ -713,13 +749,14 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
                   </div>
                 )}
               </div>
-              {errors.officeCode && <div style={err}>{errors.officeCode}</div>}
-              {selectedOffice && (
+              {errors.officeCodes && <div style={err}>{errors.officeCodes}</div>}
+              {primaryOfficeObj && (
                 <div style={{ fontSize: '0.7rem', color: '#6B7280', marginTop: 4, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <span>👤 {form.manager}</span>
                   <span>🌎 {form.region}</span>
                   <span>📋 {form.medium}</span>
-                  {selectedOffice.isFR && <span style={{ color: '#1E40AF', fontWeight: 700 }}>🇫🇷 FR</span>}
+                  {primaryOfficeObj.isFR && <span style={{ color: '#1E40AF', fontWeight: 700 }}>🇫🇷 FR</span>}
+                  {form.officeCodes.length > 1 && <span style={{ color: '#9CA3AF' }}>· {FR ? `${form.officeCodes.length} bureaux` : `${form.officeCodes.length} offices`}</span>}
                 </div>
               )}
             </div>
