@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import useStore from '../store/useStore'
 import { t } from '../data/translations'
-import { OFFICES, CHARITIES, SOURCES, STATUSES, AVAILABILITY, REGIONS } from '../data/offices'
+import { OFFICES, SOURCES, STATUSES, AVAILABILITY, REGIONS } from '../data/offices'
 
 function formatPhone(value) {
   const digits = value.replace(/\D/g, '').slice(0, 10)
@@ -32,6 +32,23 @@ const EMPTY_FORM = {
   source: '', interviewDate: new Date().toISOString().slice(0, 10),
   interviewer: '', status: 'Pending', notes: '',
   username: '', password: '',
+}
+
+function ReadOnlyField({ label, value, mono = false }) {
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: '0.63rem', fontWeight: 700, color: '#94A3B8', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>
+      <div style={{
+        padding: '9px 12px', borderRadius: 8, background: '#F4F5FB',
+        border: '1.5px solid #E8EAF6', fontSize: '0.875rem',
+        color: '#6B7280', fontFamily: mono ? 'IBM Plex Mono, monospace' : 'inherit',
+        display: 'flex', alignItems: 'center', gap: 6, minHeight: 38,
+      }}>
+        <span style={{ fontSize: '0.65rem', color: '#CBD5E1' }}>🔒</span>
+        <span>{value || <span style={{ color: '#CBD5E1', fontStyle: 'italic' }}>—</span>}</span>
+      </div>
+    </div>
+  )
 }
 
 function PhaseHeader({ number, title, owner, complete, pending }) {
@@ -65,6 +82,7 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
   const addCandidate = useStore((s) => s.addCandidate)
   const updateCandidate = useStore((s) => s.updateCandidate)
   const addToast = useStore((s) => s.addToast)
+  const charities = useStore((s) => s.charities)
 
   const [form, setForm] = useState(EMPTY_FORM)
   const [errors, setErrors] = useState({})
@@ -205,6 +223,8 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
 
   const FR = language === 'FR'
   const req = FR ? 'Requis' : 'Required'
+  // Ops editing an existing candidate: can only change preferred name, status, notes
+  const opsLocked = role === 'operations' && isEdit
 
   // Phase 1 complete = all recruitment fields filled
   const phase1Complete = !!(
@@ -300,13 +320,22 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
 
   // Styles
   const inp = (field) => ({
-    width: '100%', padding: '8px 12px',
-    border: `1px solid ${errors[field] ? '#EF4444' : '#D1D5DB'}`,
-    borderRadius: 6, fontSize: '0.875rem',
+    width: '100%', padding: '9px 12px',
+    border: `1.5px solid ${errors[field] ? '#EF4444' : '#E8EAF6'}`,
+    borderRadius: 8, fontSize: '0.875rem',
     fontFamily: 'IBM Plex Sans, sans-serif',
     color: '#111827', background: 'white', outline: 'none', boxSizing: 'border-box',
+    transition: 'border-color 0.15s, box-shadow 0.15s',
   })
-  const lbl = { display: 'block', fontSize: '0.68rem', fontWeight: 600, color: '#374151', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }
+  const inpFocus = (e) => {
+    e.currentTarget.style.borderColor = '#2DCDB8'
+    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(45,205,184,0.15)'
+  }
+  const inpBlur = (e) => {
+    e.currentTarget.style.borderColor = '#E8EAF6'
+    e.currentTarget.style.boxShadow = 'none'
+  }
+  const lbl = { display: 'block', fontSize: '0.63rem', fontWeight: 700, color: '#94A3B8', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.08em' }
   const err = { fontSize: '0.68rem', color: '#EF4444', marginTop: 3 }
   const fw = { marginBottom: 12 }
   const selectedOffice = OFFICES.find((o) => o.code === form.officeCode)
@@ -325,7 +354,7 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
       }}>
         {/* Header */}
         <div style={{
-          background: '#0D1117', padding: '14px 20px', display: 'flex', alignItems: 'center',
+          background: '#1E2769', padding: '14px 20px', display: 'flex', alignItems: 'center',
           justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10, flexShrink: 0,
         }}>
           <div>
@@ -343,10 +372,36 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
               </div>
             )}
           </div>
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#9CA3AF', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1 }}>×</button>
+          <button
+            onClick={onClose}
+            style={{ background: 'transparent', border: 'none', color: 'white', opacity: 0.6, fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1, transition: 'opacity 0.15s' }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.6')}
+          >×</button>
         </div>
 
         <div style={{ padding: '20px', flex: 1, overflowY: 'auto' }}>
+
+          {/* Phase Progress Stepper */}
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24, padding: '16px', background: 'white', borderRadius: 12, border: '1px solid #E8EAF6' }}>
+            {[1, 2, 3].map((n, i) => {
+              const done = n === 1 ? phase1Complete : n === 2 ? phase2Complete : !!form.username
+              const active = n === 1 ? !phase1Complete : n === 2 ? (phase1Complete && !phase2Complete) : (phase2Complete && !form.username)
+              return (
+                <React.Fragment key={n}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: done ? '#2DCDB8' : active ? '#1E2769' : '#F4F5FB', border: `2px solid ${done ? '#2DCDB8' : active ? '#1E2769' : '#E8EAF6'}`, color: done || active ? 'white' : '#94A3B8', fontSize: '0.75rem', fontWeight: 700 }}>
+                      {done ? '✓' : n}
+                    </div>
+                    <span style={{ fontSize: '0.6rem', fontWeight: 600, color: done ? '#2DCDB8' : active ? '#1E2769' : '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
+                      {n === 1 ? (language === 'FR' ? 'Recrutement' : 'Intake') : n === 2 ? (language === 'FR' ? 'Placement' : 'Employment') : (language === 'FR' ? 'Profil' : 'Profile')}
+                    </span>
+                  </div>
+                  {i < 2 && <div style={{ flex: 1, height: 2, background: done ? '#2DCDB8' : '#E8EAF6', margin: '0 8px', marginBottom: 20 }} />}
+                </React.Fragment>
+              )
+            })}
+          </div>
 
           {/* Historical Match Warning (2024+) */}
           {historicalMatches.length > 0 && historicalAction === null && duplicates.length === 0 && (
@@ -435,7 +490,7 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
           )}
 
           {/* ══ PHASE 1 — RECRUITMENT INTAKE ══ */}
-          <div style={{ marginBottom: 24, padding: '16px', background: '#FAFAFA', borderRadius: 10, border: '1px solid #E5E7EB', borderLeft: '3px solid #F0194A' }}>
+          <div style={{ marginBottom: 24, padding: '16px', background: '#FAFBFF', borderRadius: 12, border: '1px solid #E8EAF6', borderLeft: '3px solid #F0194A' }}>
             <PhaseHeader
               number={1}
               title={FR ? 'Informations du candidat' : 'Candidate Intake'}
@@ -443,125 +498,176 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
               complete={phase1Complete}
             />
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div style={fw}>
-                <label style={lbl}>{t('firstName', language)} *</label>
-                <input style={inp('firstName')} value={form.firstName} onChange={(e) => setField('firstName', e.target.value)} onBlur={() => checkDuplicates(form)} />
-                {errors.firstName && <div style={err}>{errors.firstName}</div>}
-              </div>
-              <div style={fw}>
-                <label style={lbl}>{t('lastName', language)} *</label>
-                <input style={inp('lastName')} value={form.lastName} onChange={(e) => setField('lastName', e.target.value)} onBlur={() => checkDuplicates(form)} />
-                {errors.lastName && <div style={err}>{errors.lastName}</div>}
-              </div>
-            </div>
-            <div style={fw}>
-              <label style={lbl}>{t('preferredName', language)} <span style={{ fontWeight: 400, textTransform: 'none', color: '#9CA3AF', fontSize: '0.65rem' }}>({FR ? 'Optionnel' : 'Optional'})</span></label>
-              <input style={inp('preferredName')} value={form.preferredName} onChange={(e) => setField('preferredName', e.target.value)} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div style={fw}>
-                <label style={lbl}>{t('phone', language)} *</label>
-                <input style={inp('phone')} value={form.phone} onChange={handlePhoneChange} onBlur={() => checkDuplicates(form)} placeholder="(XXX) XXX-XXXX" maxLength={14} />
-                {errors.phone && <div style={err}>{errors.phone}</div>}
-              </div>
-              <div style={fw}>
-                <label style={lbl}>{t('email', language)} *</label>
-                <input style={inp('email')} type="email" value={form.email} onChange={(e) => setField('email', e.target.value)} onBlur={() => checkDuplicates(form)} />
-                {errors.email && <div style={err}>{errors.email}</div>}
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div style={fw}>
-                <label style={lbl}>{t('languagePreference', language)} *</label>
-                <div style={{ display: 'flex', gap: 16, paddingTop: 6 }}>
-                  {['EN', 'FR'].map((lang) => (
-                    <label key={lang} style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }}>
-                      <input type="radio" name="langPref" value={lang} checked={form.languagePreference === lang} onChange={() => setField('languagePreference', lang)} style={{ accentColor: '#F0194A' }} />
-                      {lang}
-                    </label>
-                  ))}
+            {/* When ops is editing, most Phase 1 fields are read-only */}
+            {opsLocked ? (
+              <>
+                <div style={{ background: '#F4F5FB', border: '1px solid #E8EAF6', borderRadius: 8, padding: '8px 12px', marginBottom: 14, fontSize: '0.72rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  🔒 {FR ? 'Les champs du recrutement sont en lecture seule. Vous pouvez modifier le nom préféré, le statut et les notes.' : 'Recruitment fields are read-only. You can edit preferred name, status, and notes.'}
                 </div>
-              </div>
-              <div style={fw}>
-                <label style={lbl}>{t('region', language)}</label>
-                <select style={{ ...inp('region'), cursor: 'pointer' }} value={form.region} onChange={(e) => setField('region', e.target.value)}>
-                  <option value="">—</option>
-                  {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
-                </select>
-              </div>
-            </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <ReadOnlyField label={t('firstName', language)} value={form.firstName} />
+                  <ReadOnlyField label={t('lastName', language)} value={form.lastName} />
+                </div>
+                <div style={fw}>
+                  <label style={lbl}>{t('preferredName', language)} <span style={{ fontWeight: 400, textTransform: 'none', color: '#9CA3AF', fontSize: '0.65rem' }}>({FR ? 'Optionnel' : 'Optional'})</span></label>
+                  <input style={inp('preferredName')} value={form.preferredName} onChange={(e) => setField('preferredName', e.target.value)} onFocus={inpFocus} onBlur={inpBlur} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <ReadOnlyField label={t('phone', language)} value={form.phone} mono />
+                  <ReadOnlyField label={t('email', language)} value={form.email} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <ReadOnlyField label={t('languagePreference', language)} value={form.languagePreference} />
+                  <ReadOnlyField label={t('region', language)} value={form.region} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <ReadOnlyField label={t('isRehire', language)} value={form.isRehire === 'yes' ? t('yes', language) : form.isRehire === 'no' ? t('no', language) : '—'} />
+                  <ReadOnlyField label={t('payrollId', language)} value={form.payrollId} mono />
+                </div>
+                <div style={{ marginTop: 4, paddingTop: 10, borderTop: '1px dashed #E8EAF6' }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+                    {FR ? 'Entrevue' : 'Interview'}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <ReadOnlyField label={t('source', language)} value={form.source} />
+                    <ReadOnlyField label={t('interviewDate', language)} value={form.interviewDate} mono />
+                  </div>
+                  <ReadOnlyField label={t('interviewer', language)} value={form.interviewer} />
+                  <div style={fw}>
+                    <label style={lbl}>{t('status', language)}</label>
+                    <select style={{ ...inp('status'), cursor: 'pointer' }} value={form.status} onChange={(e) => setField('status', e.target.value)} onFocus={inpFocus} onBlur={inpBlur}>
+                      {STATUSES.map((s) => <option key={s} value={s}>{t(s, language)}</option>)}
+                    </select>
+                  </div>
+                  <div style={fw}>
+                    <label style={lbl}>{t('notes', language)} <span style={{ fontWeight: 400, textTransform: 'none', color: '#9CA3AF', fontSize: '0.65rem' }}>({FR ? 'Optionnel' : 'Optional'})</span></label>
+                    <textarea style={{ ...inp('notes'), minHeight: 64, resize: 'vertical', fontFamily: 'IBM Plex Sans, sans-serif' }} value={form.notes} onChange={(e) => setField('notes', e.target.value)} onFocus={inpFocus} onBlur={inpBlur} />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div style={fw}>
+                    <label style={lbl}>{t('firstName', language)} *</label>
+                    <input style={inp('firstName')} value={form.firstName} onChange={(e) => setField('firstName', e.target.value)} onBlur={(e) => { inpBlur(e); checkDuplicates(form) }} onFocus={inpFocus} />
+                    {errors.firstName && <div style={err}>{errors.firstName}</div>}
+                  </div>
+                  <div style={fw}>
+                    <label style={lbl}>{t('lastName', language)} *</label>
+                    <input style={inp('lastName')} value={form.lastName} onChange={(e) => setField('lastName', e.target.value)} onBlur={(e) => { inpBlur(e); checkDuplicates(form) }} onFocus={inpFocus} />
+                    {errors.lastName && <div style={err}>{errors.lastName}</div>}
+                  </div>
+                </div>
+                <div style={fw}>
+                  <label style={lbl}>{t('preferredName', language)} <span style={{ fontWeight: 400, textTransform: 'none', color: '#9CA3AF', fontSize: '0.65rem' }}>({FR ? 'Optionnel' : 'Optional'})</span></label>
+                  <input style={inp('preferredName')} value={form.preferredName} onChange={(e) => setField('preferredName', e.target.value)} onFocus={inpFocus} onBlur={inpBlur} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div style={fw}>
+                    <label style={lbl}>{t('phone', language)} *</label>
+                    <input style={inp('phone')} value={form.phone} onChange={handlePhoneChange} onBlur={(e) => { inpBlur(e); checkDuplicates(form) }} onFocus={inpFocus} placeholder="(XXX) XXX-XXXX" maxLength={14} />
+                    {errors.phone && <div style={err}>{errors.phone}</div>}
+                  </div>
+                  <div style={fw}>
+                    <label style={lbl}>{t('email', language)} *</label>
+                    <input style={inp('email')} type="email" value={form.email} onChange={(e) => setField('email', e.target.value)} onBlur={(e) => { inpBlur(e); checkDuplicates(form) }} onFocus={inpFocus} />
+                    {errors.email && <div style={err}>{errors.email}</div>}
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div style={fw}>
+                    <label style={lbl}>{t('languagePreference', language)} *</label>
+                    <div style={{ display: 'flex', gap: 16, paddingTop: 6 }}>
+                      {['EN', 'FR'].map((lang) => (
+                        <label key={lang} style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }}>
+                          <input type="radio" name="langPref" value={lang} checked={form.languagePreference === lang} onChange={() => setField('languagePreference', lang)} style={{ accentColor: '#F0194A' }} />
+                          {lang}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={fw}>
+                    <label style={lbl}>{t('region', language)}</label>
+                    <select style={{ ...inp('region'), cursor: 'pointer' }} value={form.region} onChange={(e) => setField('region', e.target.value)} onFocus={inpFocus} onBlur={inpBlur}>
+                      <option value="">—</option>
+                      {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </div>
+                </div>
 
-            {/* Is Rehire */}
-            <div style={{ ...fw, padding: '10px 12px', background: 'white', borderRadius: 8, border: '1px solid #E5E7EB' }}>
-              <label style={{ ...lbl, marginBottom: 8 }}>{t('isRehire', language)} *</label>
-              <div style={{ display: 'flex', gap: 20 }}>
-                {[{ val: 'yes', label: t('yes', language), color: '#D97706' }, { val: 'no', label: t('no', language), color: '#374151' }].map(({ val, label, color }) => (
-                  <label key={val} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                    <input type="radio" name="isRehire" value={val} checked={form.isRehire === val} onChange={() => setField('isRehire', val)} style={{ accentColor: '#F0194A', width: 15, height: 15 }} />
-                    <span style={{ fontSize: '0.9rem', fontWeight: 600, color }}>{label}</span>
-                  </label>
-                ))}
-              </div>
-              {errors.isRehire && <div style={err}>{errors.isRehire}</div>}
-            </div>
+                {/* Is Rehire */}
+                <div style={{ ...fw, padding: '10px 12px', background: 'white', borderRadius: 8, border: '1px solid #E8EAF6' }}>
+                  <label style={{ ...lbl, marginBottom: 8 }}>{t('isRehire', language)} *</label>
+                  <div style={{ display: 'flex', gap: 20 }}>
+                    {[{ val: 'yes', label: t('yes', language), color: '#D97706' }, { val: 'no', label: t('no', language), color: '#374151' }].map(({ val, label, color }) => (
+                      <label key={val} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                        <input type="radio" name="isRehire" value={val} checked={form.isRehire === val} onChange={() => setField('isRehire', val)} style={{ accentColor: '#F0194A', width: 15, height: 15 }} />
+                        <span style={{ fontSize: '0.9rem', fontWeight: 600, color }}>{label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {errors.isRehire && <div style={err}>{errors.isRehire}</div>}
+                </div>
 
-            {form.isRehire !== '' && (
-              <div style={fw}>
-                <label style={lbl}>{t('payrollId', language)} {form.isRehire === 'yes' ? '*' : ''}</label>
-                <input style={inp('payrollId')} value={form.payrollId} onChange={(e) => setField('payrollId', e.target.value)} placeholder={form.isRehire === 'no' ? (FR ? 'Ajouté après embauche' : 'Added after hiring') : ''} />
-                {errors.payrollId && <div style={err}>{errors.payrollId}</div>}
-              </div>
+                {form.isRehire !== '' && (
+                  <div style={fw}>
+                    <label style={lbl}>{t('payrollId', language)} {form.isRehire === 'yes' ? '*' : ''}</label>
+                    <input style={inp('payrollId')} value={form.payrollId} onChange={(e) => setField('payrollId', e.target.value)} onFocus={inpFocus} onBlur={inpBlur} placeholder={form.isRehire === 'no' ? (FR ? 'Ajouté après embauche' : 'Added after hiring') : ''} />
+                    {errors.payrollId && <div style={err}>{errors.payrollId}</div>}
+                  </div>
+                )}
+
+                {/* Interview section */}
+                <div style={{ marginTop: 4, paddingTop: 10, borderTop: '1px dashed #E8EAF6' }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+                    {FR ? 'Entrevue' : 'Interview'}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div style={fw}>
+                      <label style={lbl}>{t('source', language)} *</label>
+                      <select style={{ ...inp('source'), cursor: 'pointer' }} value={form.source} onChange={(e) => setField('source', e.target.value)} onFocus={inpFocus} onBlur={inpBlur}>
+                        <option value="">—</option>
+                        {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                      {errors.source && <div style={err}>{errors.source}</div>}
+                    </div>
+                    <div style={fw}>
+                      <label style={lbl}>{t('interviewDate', language)} *</label>
+                      <input type="date" style={inp('interviewDate')} value={form.interviewDate} onChange={(e) => setField('interviewDate', e.target.value)} onFocus={inpFocus} onBlur={inpBlur} />
+                      {errors.interviewDate && <div style={err}>{errors.interviewDate}</div>}
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div style={fw}>
+                      <label style={lbl}>{t('interviewer', language)} *</label>
+                      <input style={inp('interviewer')} value={form.interviewer} onChange={(e) => setField('interviewer', e.target.value)} onFocus={inpFocus} onBlur={inpBlur} />
+                      {errors.interviewer && <div style={err}>{errors.interviewer}</div>}
+                    </div>
+                    <div style={fw}>
+                      <label style={lbl}>{t('status', language)} *</label>
+                      <select style={{ ...inp('status'), cursor: 'pointer' }} value={form.status} onChange={(e) => setField('status', e.target.value)} onFocus={inpFocus} onBlur={inpBlur}>
+                        {STATUSES.map((s) => <option key={s} value={s}>{t(s, language)}</option>)}
+                      </select>
+                      {errors.status && <div style={err}>{errors.status}</div>}
+                    </div>
+                  </div>
+                  <div style={fw}>
+                    <label style={lbl}>{t('notes', language)} <span style={{ fontWeight: 400, textTransform: 'none', color: '#9CA3AF', fontSize: '0.65rem' }}>({FR ? 'Optionnel' : 'Optional'})</span></label>
+                    <textarea style={{ ...inp('notes'), minHeight: 64, resize: 'vertical', fontFamily: 'IBM Plex Sans, sans-serif' }} value={form.notes} onChange={(e) => setField('notes', e.target.value)} onFocus={inpFocus} onBlur={inpBlur} />
+                  </div>
+                </div>
+              </>
             )}
-
-            {/* Interview section */}
-            <div style={{ marginTop: 4, paddingTop: 10, borderTop: '1px dashed #E5E7EB' }}>
-              <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
-                {FR ? 'Entrevue' : 'Interview'}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div style={fw}>
-                  <label style={lbl}>{t('source', language)} *</label>
-                  <select style={{ ...inp('source'), cursor: 'pointer' }} value={form.source} onChange={(e) => setField('source', e.target.value)}>
-                    <option value="">—</option>
-                    {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                  {errors.source && <div style={err}>{errors.source}</div>}
-                </div>
-                <div style={fw}>
-                  <label style={lbl}>{t('interviewDate', language)} *</label>
-                  <input type="date" style={inp('interviewDate')} value={form.interviewDate} onChange={(e) => setField('interviewDate', e.target.value)} />
-                  {errors.interviewDate && <div style={err}>{errors.interviewDate}</div>}
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div style={fw}>
-                  <label style={lbl}>{t('interviewer', language)} *</label>
-                  <input style={inp('interviewer')} value={form.interviewer} onChange={(e) => setField('interviewer', e.target.value)} />
-                  {errors.interviewer && <div style={err}>{errors.interviewer}</div>}
-                </div>
-                <div style={fw}>
-                  <label style={lbl}>{t('status', language)} *</label>
-                  <select style={{ ...inp('status'), cursor: 'pointer' }} value={form.status} onChange={(e) => setField('status', e.target.value)}>
-                    {STATUSES.map((s) => <option key={s} value={s}>{t(s, language)}</option>)}
-                  </select>
-                  {errors.status && <div style={err}>{errors.status}</div>}
-                </div>
-              </div>
-              <div style={fw}>
-                <label style={lbl}>{t('notes', language)} <span style={{ fontWeight: 400, textTransform: 'none', color: '#9CA3AF', fontSize: '0.65rem' }}>({FR ? 'Optionnel' : 'Optional'})</span></label>
-                <textarea style={{ ...inp('notes'), minHeight: 64, resize: 'vertical', fontFamily: 'IBM Plex Sans, sans-serif' }} value={form.notes} onChange={(e) => setField('notes', e.target.value)} />
-              </div>
-            </div>
           </div>
 
           {/* ══ PHASE 2 — EMPLOYMENT DETAILS (Ops) ══ */}
           <div style={{
             marginBottom: 24, padding: '16px',
-            background: phase2Complete ? '#F0FDF4' : phase2Pending ? '#FAFAFA' : '#F0F7FF',
-            borderRadius: 10,
-            border: `1px solid ${phase2Complete ? '#BBF7D0' : '#DBEAFE'}`,
-            borderLeft: `3px solid #3B82F6`,
+            background: '#FAFBFF',
+            borderRadius: 12,
+            border: '1px solid #E8EAF6',
+            borderLeft: '3px solid #2DCDB8',
           }}>
             <PhaseHeader
               number={2}
@@ -585,16 +691,17 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
                   style={inp('officeCode')}
                   value={officeSearch}
                   onChange={(e) => { setOfficeSearch(e.target.value); setOfficeDropdownOpen(true); if (!e.target.value) setForm((f) => ({ ...f, officeCode: '', manager: '', medium: '' })) }}
-                  onFocus={() => setOfficeDropdownOpen(true)}
+                  onFocus={(e) => { inpFocus(e); setOfficeDropdownOpen(true) }}
+                  onBlur={inpBlur}
                   placeholder={FR ? 'Rechercher un bureau...' : 'Search office code...'}
                   autoComplete="off"
                 />
                 {officeDropdownOpen && filteredOffices.length > 0 && (
-                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #D1D5DB', borderRadius: 6, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', zIndex: 600, maxHeight: 200, overflowY: 'auto' }}>
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #E8EAF6', borderRadius: 10, boxShadow: '0 8px 24px rgba(30,39,105,0.12)', zIndex: 600, maxHeight: 200, overflowY: 'auto' }}>
                     {filteredOffices.map((o) => (
                       <button key={o.code} onMouseDown={() => handleOfficeSelect(o)}
                         style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'transparent', border: 'none', borderBottom: '1px solid #F3F4F6', cursor: 'pointer', fontSize: '0.8rem' }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = '#F9FAFB')}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = '#F6F7FC')}
                         onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                       >
                         <span style={{ fontWeight: 700, color: '#111827', fontFamily: 'IBM Plex Mono, monospace', marginRight: 8 }}>{o.code}</span>
@@ -620,15 +727,15 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div style={fw}>
                 <label style={lbl}>{t('charity', language)} {role === 'operations' ? '*' : ''}</label>
-                <select style={{ ...inp('charity'), cursor: 'pointer' }} value={form.charity} onChange={(e) => setField('charity', e.target.value)}>
+                <select style={{ ...inp('charity'), cursor: 'pointer' }} value={form.charity} onChange={(e) => setField('charity', e.target.value)} onFocus={inpFocus} onBlur={inpBlur}>
                   <option value="">—</option>
-                  {CHARITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {charities.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
                 {errors.charity && <div style={err}>{errors.charity}</div>}
               </div>
               <div style={fw}>
                 <label style={lbl}>{t('availability', language)} {role === 'operations' ? '*' : ''}</label>
-                <select style={{ ...inp('availability'), cursor: 'pointer' }} value={form.availability} onChange={(e) => setField('availability', e.target.value)}>
+                <select style={{ ...inp('availability'), cursor: 'pointer' }} value={form.availability} onChange={(e) => setField('availability', e.target.value)} onFocus={inpFocus} onBlur={inpBlur}>
                   <option value="">—</option>
                   {AVAILABILITY.map((a) => <option key={a} value={a}>{a}</option>)}
                 </select>
@@ -637,13 +744,13 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
             </div>
             <div style={fw}>
               <label style={lbl}>{t('day0', language)}</label>
-              <input type="date" style={inp('day0')} value={form.day0} onChange={(e) => setField('day0', e.target.value)} />
+              <input type="date" style={inp('day0')} value={form.day0} onChange={(e) => setField('day0', e.target.value)} onFocus={inpFocus} onBlur={inpBlur} />
             </div>
           </div>
 
           {/* ══ PHASE 3 — USER PROFILE (info only) ══ */}
           {(form.status === 'Hired' || (isEdit && candidates.find(c => c.id === candidateId)?.status === 'Hired')) && (
-            <div style={{ marginBottom: 24, padding: '14px 16px', background: form.username ? '#F0FDF4' : '#FFF0F5', borderRadius: 10, border: `1px solid ${form.username ? '#BBF7D0' : '#FECACA'}`, borderLeft: '3px solid #8B5CF6' }}>
+            <div style={{ marginBottom: 24, padding: '14px 16px', background: form.username ? '#F0FDF4' : '#FFF0F5', borderRadius: 12, border: '1px solid #E8EAF6', borderLeft: '3px solid #8B5CF6' }}>
               <PhaseHeader
                 number={3}
                 title={FR ? 'Profil utilisateur' : 'User Profile'}
@@ -671,20 +778,20 @@ export default function AddCandidatePanel({ candidateId, onClose }) {
               )}
             </div>
           )}
+        </div>
 
-          {/* Actions */}
-          <div style={{ display: 'flex', gap: 10, paddingTop: 12, borderTop: '1px solid #F3F4F6', position: 'sticky', bottom: 0, background: 'white', marginTop: 8 }}>
-            <button onClick={handleSubmit}
-              style={{ flex: 1, padding: '10px', background: '#F0194A', color: 'white', border: 'none', borderRadius: 8, fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#C9123A')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = '#F0194A')}
-            >
-              {t('save', language)}
-            </button>
-            <button onClick={onClose} style={{ padding: '10px 20px', background: 'white', color: '#374151', border: '1px solid #D1D5DB', borderRadius: 8, fontSize: '0.875rem', cursor: 'pointer' }}>
-              {t('cancel', language)}
-            </button>
-          </div>
+        {/* Sticky footer — outside scrollable padding area */}
+        <div style={{ display: 'flex', gap: 10, borderTop: '1px solid #E8EAF6', padding: '14px 20px', background: 'white', flexShrink: 0, position: 'sticky', bottom: 0, zIndex: 10 }}>
+          <button onClick={handleSubmit}
+            style={{ flex: 1, padding: '10px', background: '#F0194A', color: 'white', border: 'none', borderRadius: 8, fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(240,25,74,0.3)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#C9123A')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#F0194A')}
+          >
+            {t('save', language)}
+          </button>
+          <button onClick={onClose} style={{ padding: '10px 20px', background: 'white', color: '#374151', border: '1px solid #E8EAF6', borderRadius: 8, fontSize: '0.875rem', cursor: 'pointer' }}>
+            {t('cancel', language)}
+          </button>
         </div>
       </div>
     </>

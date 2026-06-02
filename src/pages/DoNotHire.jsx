@@ -81,14 +81,14 @@ export default function DoNotHire() {
   })
   const lbl = { fontSize: '0.72rem', fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }
 
-  const TH = { padding: '10px 14px', textAlign: 'left', fontSize: '0.68rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', background: '#F9FAFB', borderBottom: '1px solid #E5E7EB', whiteSpace: 'nowrap' }
-  const TD = { padding: '10px 14px', fontSize: '0.82rem', color: '#374151', borderBottom: '1px solid #F3F4F6' }
+  const TH = { padding: '10px 14px', textAlign: 'left', fontSize: '0.62rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.1em', background: '#F6F7FC', borderBottom: '2px solid #E8EAF6', whiteSpace: 'nowrap' }
+  const TD = { padding: '11px 14px', fontSize: '0.82rem', color: '#374151', borderBottom: '1px solid #F3F4F8' }
 
   return (
     <div style={{ padding: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#111827', margin: 0 }}>{t('doNotHire', language)}</h1>
+          <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1E2769', margin: 0, letterSpacing: '-0.02em' }}>{t('doNotHire', language)}</h1>
           <p style={{ fontSize: '0.8rem', color: '#9CA3AF', margin: '4px 0 0' }}>
             {doNotHireList.length} {FR ? 'entrée(s)' : 'entries'} · {filtered.length} {FR ? 'affichée(s)' : 'shown'}
           </p>
@@ -96,7 +96,7 @@ export default function DoNotHire() {
         {canEdit && (
           <button
             onClick={() => setShowForm((s) => !s)}
-            style={{ background: '#DC2626', color: 'white', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }}
+            style={{ background: '#F0194A', color: 'white', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(240,25,74,0.3)' }}
           >
             + {t('addToList', language)}
           </button>
@@ -181,7 +181,7 @@ export default function DoNotHire() {
       </div>
 
       {/* Table */}
-      <div style={{ borderRadius: 10, border: '1px solid #E5E7EB', background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflowX: 'auto' }}>
+      <div style={{ borderRadius: 14, border: '1px solid #E8EAF6', background: 'white', boxShadow: '0 2px 8px rgba(30,39,105,0.06)', overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
