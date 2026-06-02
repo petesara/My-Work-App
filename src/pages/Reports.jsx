@@ -42,10 +42,16 @@ const DOC_KEYS = ['directDeposit', 'sin', 'govId', 'contract', 'workPermit']
 
 function StatCard({ label, value, sub, color, accent, small }) {
   return (
-    <div style={{ background: 'white', borderRadius: 12, padding: small ? '14px 18px' : '18px 20px', border: '1px solid #E8EAF6', boxShadow: '0 1px 3px rgba(30,39,105,0.05)', borderTop: accent ? `3px solid ${accent}` : undefined }}>
-      <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>{label}</div>
-      <div style={{ fontSize: small ? '1.6rem' : '2rem', fontWeight: 800, color: color || '#1E2769', lineHeight: 1, letterSpacing: '-0.02em' }}>{value}</div>
-      {sub && <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: 6 }}>{sub}</div>}
+    <div style={{
+      background: 'white', borderRadius: 12,
+      padding: small ? '14px 18px' : '20px 22px',
+      border: '1px solid #E8EAF6',
+      boxShadow: '0 1px 4px rgba(30,39,105,0.06)',
+      borderLeft: accent ? `4px solid ${accent}` : '4px solid transparent',
+    }}>
+      <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>{label}</div>
+      <div style={{ fontSize: small ? '1.75rem' : '2.25rem', fontWeight: 800, color: color || '#1E2769', lineHeight: 1, letterSpacing: '-0.03em' }}>{value}</div>
+      {sub && <div style={{ fontSize: '0.7rem', color: '#94A3B8', marginTop: 7 }}>{sub}</div>}
     </div>
   )
 }
@@ -53,15 +59,18 @@ function StatCard({ label, value, sub, color, accent, small }) {
 function BarChart({ data, total }) {
   if (!total) return <div style={{ color: '#9CA3AF', fontSize: '0.85rem', padding: '16px 0' }}>—</div>
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {data.filter(d => d.count > 0).map(({ label, count, color }) => (
-        <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 120, fontSize: '0.73rem', color: '#374151', textAlign: 'right', flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
-          <div style={{ flex: 1, background: '#F3F4F6', borderRadius: 4, height: 16, overflow: 'hidden' }}>
-            <div style={{ width: `${Math.round((count / (total || 1)) * 100)}%`, background: color, height: '100%', borderRadius: 4, transition: 'width 0.4s', minWidth: 4 }} />
+        <div key={label}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ fontSize: '0.78rem', color: '#374151', fontWeight: 500 }}>{label}</span>
+            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#374151' }}>
+              {count} <span style={{ fontWeight: 400, color: '#9CA3AF', fontSize: '0.72rem' }}>({Math.round((count / (total || 1)) * 100)}%)</span>
+            </span>
           </div>
-          <div style={{ width: 28, fontSize: '0.73rem', fontWeight: 600, color: '#374151', textAlign: 'right' }}>{count}</div>
-          <div style={{ width: 36, fontSize: '0.67rem', color: '#9CA3AF' }}>{Math.round((count / (total || 1)) * 100)}%</div>
+          <div style={{ background: '#F3F4F6', borderRadius: 6, height: 10, overflow: 'hidden' }}>
+            <div style={{ width: `${Math.round((count / (total || 1)) * 100)}%`, background: color, height: '100%', borderRadius: 6, transition: 'width 0.4s', minWidth: count > 0 ? 6 : 0 }} />
+          </div>
         </div>
       ))}
     </div>
@@ -69,26 +78,35 @@ function BarChart({ data, total }) {
 }
 
 function Funnel({ steps }) {
-  const max = Math.max(...steps.map(s => s.count), 1)
+  const first = steps[0]?.count || 1
   return (
-    <div style={{ display: 'flex', gap: 0, alignItems: 'stretch' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 0, overflowX: 'auto', paddingBottom: 4 }}>
       {steps.map((step, i) => {
-        const pct = Math.round((step.count / max) * 100)
+        const ofFirst = first > 0 ? Math.round((step.count / first) * 100) : 0
         const dropPct = i > 0 && steps[i - 1].count > 0
           ? Math.round(((steps[i - 1].count - step.count) / steps[i - 1].count) * 100)
           : null
         return (
-          <div key={step.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
+          <div key={step.label} style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
             {i > 0 && (
-              <div style={{ position: 'absolute', left: -1, top: '30%', fontSize: '0.62rem', color: dropPct > 30 ? '#EF4444' : '#9CA3AF', zIndex: 1, background: 'white', padding: '1px 3px', borderRadius: 3 }}>
-                {dropPct !== null ? `−${dropPct}%` : ''}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, padding: '0 6px' }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: dropPct > 30 ? '#EF4444' : '#94A3B8', marginBottom: 2 }}>
+                  {dropPct !== null ? `−${dropPct}%` : ''}
+                </span>
+                <span style={{ color: '#CBD5E1', fontSize: '1.4rem', lineHeight: 1 }}>›</span>
               </div>
             )}
-            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 4 }}>
-              <div style={{ width: `${Math.max(pct, 20)}%`, background: step.color || '#1E2769', borderRadius: 6, padding: '10px 4px', textAlign: 'center', transition: 'width 0.4s', minHeight: 48, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'white', lineHeight: 1 }}>{step.count}</div>
-              </div>
-              <div style={{ fontSize: '0.65rem', fontWeight: 600, color: '#64748B', marginTop: 6, textAlign: 'center', letterSpacing: '0.03em', textTransform: 'uppercase' }}>{step.label}</div>
+            <div style={{
+              flex: 1, background: 'white', borderRadius: 10, padding: '16px 12px', textAlign: 'center',
+              border: `1.5px solid ${step.color}40`,
+              borderTop: `4px solid ${step.color}`,
+              boxShadow: '0 1px 4px rgba(30,39,105,0.05)',
+            }}>
+              <div style={{ fontSize: '2rem', fontWeight: 900, color: step.color, lineHeight: 1, letterSpacing: '-0.03em' }}>{step.count}</div>
+              <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#64748B', marginTop: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{step.label}</div>
+              {i > 0 && (
+                <div style={{ fontSize: '0.68rem', color: '#CBD5E1', marginTop: 4 }}>{ofFirst}% of start</div>
+              )}
             </div>
           </div>
         )
@@ -97,18 +115,31 @@ function Funnel({ steps }) {
   )
 }
 
-function SectionHeader({ title }) {
+function SectionDivider({ title, color = '#1E2769' }) {
   return (
-    <h3 style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', margin: '0 0 14px', padding: '0 0 10px', borderBottom: '1px solid #E8EAF6', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-      {title}
-    </h3>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '32px 0 16px' }}>
+      <div style={{ width: 4, height: 18, borderRadius: 2, background: color, flexShrink: 0 }} />
+      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#374151', letterSpacing: '0.1em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{title}</span>
+      <div style={{ flex: 1, height: 1, background: '#E8EAF6' }} />
+    </div>
   )
 }
 
 function Card({ children, style }) {
   return (
-    <div style={{ background: 'white', borderRadius: 10, padding: 20, border: '1px solid #E8EAF6', boxShadow: '0 1px 3px rgba(30,39,105,0.05)', ...style }}>
+    <div style={{ background: 'white', borderRadius: 12, padding: 22, border: '1px solid #E8EAF6', boxShadow: '0 1px 4px rgba(30,39,105,0.05)', ...style }}>
       {children}
+    </div>
+  )
+}
+
+function TableCard({ title, children }) {
+  return (
+    <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E8EAF6', boxShadow: '0 1px 4px rgba(30,39,105,0.05)', overflow: 'hidden' }}>
+      <div style={{ padding: '14px 20px', borderBottom: '2px solid #F3F4F6', background: '#FAFBFF' }}>
+        <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1E2769' }}>{title}</span>
+      </div>
+      <div style={{ overflowX: 'auto' }}>{children}</div>
     </div>
   )
 }
@@ -242,62 +273,64 @@ function RecruitmentReport({ candidates, dateFrom, dateTo, filterRegion, filterO
 
   return (
     <div>
-      {/* KPI strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(148px, 1fr))', gap: 10, marginBottom: 22 }}>
+      {/* ── Overview KPIs ── */}
+      <SectionDivider title={FR ? 'Aperçu de la période' : 'Period Overview'} color="#1E2769" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 8 }}>
         <StatCard label={FR ? 'Total candidat(e)s' : 'Total Candidates'} value={total} sub={`${dateFrom || '—'} → ${dateTo || '—'}`} accent="#1E2769" />
-        <StatCard label={FR ? 'Embauché(e)s' : 'Hired'} value={hired} color="#059669" accent="#2DCDB8" />
-        <StatCard label={FR ? 'Taux embauche' : 'Hire Rate'} value={`${hireRate}%`} sub={`${hired}/${showed} ${FR ? 'présenté(e)s' : 'showed'}`} color={hireRate >= 30 ? '#059669' : '#D97706'} accent={hireRate >= 30 ? '#2DCDB8' : '#F59E0B'} />
-        <StatCard label={FR ? 'Taux absence' : 'No-Show Rate'} value={`${noShowRate}%`} sub={`${noShow} ${FR ? 'absent(e)s' : 'no-shows'}`} color={noShowRate > 25 ? '#DC2626' : '#64748B'} accent={noShowRate > 25 ? '#F0194A' : '#E8EAF6'} />
+        <StatCard label={FR ? 'Embauché(e)s' : 'Hired'} value={hired} sub={`${FR ? 'sur' : 'out of'} ${showed} ${FR ? 'présenté(e)s' : 'who showed'}`} color="#059669" accent="#2DCDB8" />
+        <StatCard label={FR ? 'Taux d\'embauche' : 'Hire Rate'} value={`${hireRate}%`} sub={hireRate >= 30 ? (FR ? '✓ Bon taux' : '✓ Good rate') : (FR ? '↓ En dessous de 30%' : '↓ Below 30%')} color={hireRate >= 30 ? '#059669' : '#D97706'} accent={hireRate >= 30 ? '#2DCDB8' : '#F59E0B'} />
+        <StatCard label={FR ? 'Taux d\'absence' : 'No-Show Rate'} value={`${noShowRate}%`} sub={`${noShow} ${FR ? 'absent(e)s' : 'no-shows'}`} color={noShowRate > 25 ? '#DC2626' : '#64748B'} accent={noShowRate > 25 ? '#F0194A' : '#E8EAF6'} />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
         <StatCard label={FR ? 'Rejeté(e)s' : 'Rejected'} value={rejected} color="#EF4444" accent="#F0194A" small />
         <StatCard label={FR ? 'En attente' : 'Pending'} value={pending} color="#F59E0B" accent="#F59E0B" small />
         <StatCard label={FR ? 'Suivi' : 'Follow-up'} value={followUp} color="#3B82F6" accent="#3B82F6" small />
-        <StatCard label="2nd Interview" value={secondInt} color="#8B5CF6" accent="#8B5CF6" small />
+        <StatCard label={FR ? '2e entrevue' : '2nd Interview'} value={secondInt} color="#8B5CF6" accent="#8B5CF6" small />
       </div>
 
-      {/* Funnel */}
-      <Card style={{ marginBottom: 22 }}>
-        <SectionHeader title={FR ? 'Entonnoir recrutement' : 'Recruitment Funnel'} />
+      {/* ── Recruitment Funnel ── */}
+      <SectionDivider title={FR ? 'Entonnoir de recrutement' : 'Recruitment Funnel'} color="#2DCDB8" />
+      <Card>
         <Funnel steps={[
-          { label: FR ? 'Appelé(e)s' : 'In Pipeline', count: total, color: '#1E2769' },
+          { label: FR ? 'En pipeline' : 'In Pipeline', count: total, color: '#1E2769' },
           { label: FR ? 'Présenté(e)s' : 'Showed Up', count: showed, color: '#3B82F6' },
           { label: FR ? '2e entrevue' : '2nd Interview', count: secondInt, color: '#8B5CF6' },
-          { label: FR ? 'Embauché(e)s' : 'Hired', count: hired, color: '#2DCDB8' },
+          { label: FR ? 'Embauché(e)s' : 'Hired', count: hired, color: '#059669' },
         ]} />
-        <div style={{ display: 'flex', gap: 16, marginTop: 14, flexWrap: 'wrap' }}>
-          <div style={{ fontSize: '0.72rem', color: '#9CA3AF' }}>
+        <div style={{ display: 'flex', gap: 20, marginTop: 18, paddingTop: 14, borderTop: '1px solid #F3F4F6', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>
             {FR ? 'Absent(e)s' : 'No-Shows'}: <strong style={{ color: '#9CA3AF' }}>{noShow}</strong>
-          </div>
-          <div style={{ fontSize: '0.72rem', color: '#9CA3AF' }}>
+          </span>
+          <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>
             {FR ? 'Rejeté(e)s' : 'Rejected'}: <strong style={{ color: '#EF4444' }}>{rejected}</strong>
-          </div>
-          <div style={{ fontSize: '0.72rem', color: '#9CA3AF' }}>
-            {FR ? 'En attente' : 'Pending'}: <strong style={{ color: '#F59E0B' }}>{pending}</strong>
-          </div>
+          </span>
+          <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>
+            {FR ? 'En attente' : 'Still Pending'}: <strong style={{ color: '#F59E0B' }}>{pending}</strong>
+          </span>
         </div>
       </Card>
 
-      {/* Status + Source */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 22 }}>
+      {/* ── Breakdowns ── */}
+      <SectionDivider title={FR ? 'Répartition' : 'Breakdown'} color="#F0194A" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <Card>
-          <SectionHeader title={FR ? 'Par statut' : 'By Status'} />
+          <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#374151', marginBottom: 16 }}>{FR ? 'Par statut' : 'By Status'}</div>
           <BarChart data={statusData} total={total} />
         </Card>
         <Card>
-          <SectionHeader title={FR ? 'Par source' : 'By Source'} />
-          {sourceData.length > 0 ? <BarChart data={sourceData} total={total} /> : <div style={{ color: '#9CA3AF', fontSize: '0.82rem' }}>—</div>}
+          <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#374151', marginBottom: 16 }}>{FR ? 'Par source' : 'By Source'}</div>
+          {sourceData.length > 0 ? <BarChart data={sourceData} total={total} /> : <div style={{ color: '#9CA3AF', fontSize: '0.82rem', paddingTop: 8 }}>{FR ? 'Aucune source enregistrée.' : 'No source data recorded.'}</div>}
         </Card>
       </div>
 
-      {/* Region table */}
+      {/* ── By Region ── */}
       {regionRows.length > 0 && (
-        <Card style={{ marginBottom: 22, padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 20px 12px', borderBottom: '1px solid #F3F4F6' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#374151' }}>{FR ? 'Par région' : 'By Region'}</span>
-          </div>
-          <div style={{ overflowX: 'auto' }}>
+        <>
+          <SectionDivider title={FR ? 'Par région' : 'By Region'} color="#F59E0B" />
+          <TableCard title={FR ? 'Résultats par région' : 'Results by Region'}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr>
-                {[FR ? 'Région' : 'Region', 'Total', FR ? 'Embauché(e)s' : 'Hired', FR ? 'Rejeté(e)s' : 'Rejected', FR ? 'Absent(e)s' : 'No Show', FR ? 'En attente' : 'Pending', FR ? 'Suivi' : 'Follow-up', '2e / 2nd', FR ? 'Taux' : 'Rate'].map((h, i) => (
+                {[FR ? 'Région' : 'Region', 'Total', FR ? 'Embauché(e)s' : 'Hired', FR ? 'Rejeté(e)s' : 'Rejected', FR ? 'Absent(e)s' : 'No Show', FR ? 'En attente' : 'Pending', FR ? 'Suivi' : 'Follow-up', '2nd', FR ? 'Taux emb.' : 'Hire Rate'].map((h, i) => (
                   <th key={h} style={TH(i > 0)}>{h}</th>
                 ))}
               </tr></thead>
@@ -315,8 +348,8 @@ function RecruitmentReport({ candidates, dateFrom, dateTo, filterRegion, filterO
                     <td style={TD(true, r.hireRate >= 30 ? '#059669' : '#D97706', true)}>{r.hireRate}%</td>
                   </tr>
                 ))}
-                <tr style={{ background: '#F9FAFB', borderTop: '2px solid #E5E7EB' }}>
-                  <td style={{ ...TD(true, '#111827'), paddingLeft: 20 }}>TOTAL</td>
+                <tr style={{ background: '#F0F2FF', borderTop: '2px solid #E8EAF6' }}>
+                  <td style={{ ...TD(true, '#1E2769'), paddingLeft: 20, letterSpacing: '0.05em' }}>TOTAL</td>
                   <td style={TD(true, '#111827', true)}>{total}</td>
                   <td style={TD(true, '#059669', true)}>{hired}</td>
                   <td style={TD(true, '#EF4444', true)}>{rejected}</td>
@@ -328,20 +361,18 @@ function RecruitmentReport({ candidates, dateFrom, dateTo, filterRegion, filterO
                 </tr>
               </tbody>
             </table>
-          </div>
-        </Card>
+          </TableCard>
+        </>
       )}
 
-      {/* Office table */}
+      {/* ── By Office ── */}
       {officeRows.length > 0 && (
-        <Card style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 20px 12px', borderBottom: '1px solid #F3F4F6' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#374151' }}>{FR ? 'Par bureau (top)' : 'By Office (top)'}</span>
-          </div>
-          <div style={{ overflowX: 'auto' }}>
+        <>
+          <SectionDivider title={FR ? 'Par bureau' : 'By Office'} color="#8B5CF6" />
+          <TableCard title={FR ? 'Résultats par bureau (top 20)' : 'Results by Office (top 20)'}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr>
-                {['Code', FR ? 'Bureau' : 'Office', 'Total', FR ? 'Embauché(e)s' : 'Hired', FR ? 'Rejeté(e)s' : 'Rejected', FR ? 'Absent(e)s' : 'No Show', FR ? 'Taux' : 'Rate'].map((h, i) => (
+                {['Code', FR ? 'Bureau' : 'Office', 'Total', FR ? 'Embauché(e)s' : 'Hired', FR ? 'Rejeté(e)s' : 'Rejected', FR ? 'Absent(e)s' : 'No Show', FR ? 'Taux emb.' : 'Hire Rate'].map((h, i) => (
                   <th key={h} style={TH(i > 1)}>{h}</th>
                 ))}
               </tr></thead>
@@ -359,13 +390,15 @@ function RecruitmentReport({ candidates, dateFrom, dateTo, filterRegion, filterO
                 ))}
               </tbody>
             </table>
-          </div>
-        </Card>
+          </TableCard>
+        </>
       )}
 
       {total === 0 && (
-        <div style={{ textAlign: 'center', padding: 48, color: '#9CA3AF', background: 'white', borderRadius: 10, border: '1px solid #E5E7EB' }}>
-          {FR ? 'Aucune donnée pour cette période.' : 'No data for the selected period.'}
+        <div style={{ textAlign: 'center', padding: 56, color: '#9CA3AF', background: 'white', borderRadius: 12, border: '1px solid #E5E7EB', marginTop: 24 }}>
+          <div style={{ fontSize: '2rem', marginBottom: 12 }}>📊</div>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>{FR ? 'Aucune donnée pour cette période.' : 'No data for the selected period.'}</div>
+          <div style={{ fontSize: '0.78rem' }}>{FR ? 'Essayez une période plus longue ou retirez les filtres.' : 'Try a longer period or remove filters.'}</div>
         </div>
       )}
     </div>
@@ -438,62 +471,70 @@ function AdminReport({ candidates, dateFrom, dateTo, filterRegion, filterOffice,
     }
   }).filter(Boolean).sort((a, b) => b.total - a.total)
 
+  const daysLabel = (n) => n !== null ? `${n} ${FR ? 'jours' : 'days'}` : '—'
+
   return (
     <div>
-      {/* KPI strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(148px, 1fr))', gap: 10, marginBottom: 22 }}>
-        <StatCard label={FR ? 'Embauché(e)s' : 'Total Hired'} value={total} sub={`${dateFrom || '—'} → ${dateTo || '—'}`} accent="#1E2769" />
-        <StatCard label={FR ? 'ADP Envoyé' : 'ADP Sent'} value={adpSent} sub={`${total > 0 ? Math.round((adpSent/total)*100) : 0}%`} color="#3B82F6" accent="#3B82F6" />
-        <StatCard label={FR ? 'ADP Complété' : 'ADP Complete'} value={adpComplete} sub={`${total > 0 ? Math.round((adpComplete/total)*100) : 0}%`} color="#8B5CF6" accent="#8B5CF6" />
-        <StatCard label={FR ? 'POD Actif' : 'POD Active'} value={podActive} sub={`${total > 0 ? Math.round((podActive/total)*100) : 0}%`} color="#059669" accent="#2DCDB8" />
-        <StatCard label={FR ? 'Docs manquants' : 'Missing Docs'} value={hasMissingDocs} color={hasMissingDocs > 0 ? '#D97706' : '#64748B'} accent={hasMissingDocs > 0 ? '#F59E0B' : '#E8EAF6'} small />
+      {/* ── Overview KPIs ── */}
+      <SectionDivider title={FR ? 'Aperçu de la période' : 'Period Overview'} color="#1E2769" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 12 }}>
+        <StatCard label={FR ? 'Total embauché(e)s' : 'Total Hired'} value={total} sub={`${dateFrom || '—'} → ${dateTo || '—'}`} accent="#1E2769" />
+        <StatCard label={FR ? 'ADP Envoyé' : 'ADP Sent'} value={adpSent} sub={`${total > 0 ? Math.round((adpSent/total)*100) : 0}% ${FR ? 'des embauché(e)s' : 'of hired'}`} color="#3B82F6" accent="#3B82F6" />
+        <StatCard label={FR ? 'ADP Complété' : 'ADP Complete'} value={adpComplete} sub={`${total > 0 ? Math.round((adpComplete/total)*100) : 0}% ${FR ? 'des embauché(e)s' : 'of hired'}`} color="#8B5CF6" accent="#8B5CF6" />
+        <StatCard label={FR ? 'POD Actif' : 'POD Active'} value={podActive} sub={`${total > 0 ? Math.round((podActive/total)*100) : 0}% ${FR ? 'des embauché(e)s' : 'of hired'}`} color="#059669" accent="#2DCDB8" />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+        <StatCard label={FR ? 'Docs manquants' : 'Candidates w/ Missing Docs'} value={hasMissingDocs} sub={`${total > 0 ? Math.round((hasMissingDocs/total)*100) : 0}% ${FR ? 'des embauché(e)s' : 'of hired'}`} color={hasMissingDocs > 0 ? '#D97706' : '#059669'} accent={hasMissingDocs > 0 ? '#F59E0B' : '#2DCDB8'} small />
         <StatCard
-          label={FR ? 'Moy. jours → POD' : 'Avg Days → POD'}
-          value={avgDaysToPod !== null ? `${avgDaysToPod}j` : '—'}
-          sub={FR ? 'embauche → POD actif' : 'hire → POD active'}
+          label={FR ? 'Délai moyen embauche → POD' : 'Avg. Hire to POD Active'}
+          value={daysLabel(avgDaysToPod)}
+          sub={avgDaysToPod !== null && avgDaysToPod > 14 ? (FR ? '⚠ Plus de 14 jours' : '⚠ Over 14 days') : (FR ? '✓ Dans les délais' : '✓ On track')}
           color={avgDaysToPod !== null && avgDaysToPod > 14 ? '#D97706' : '#059669'}
-          accent="#E8EAF6" small
+          accent={avgDaysToPod !== null && avgDaysToPod > 14 ? '#F59E0B' : '#2DCDB8'} small
         />
         <StatCard
-          label={FR ? 'Moy. jours → ADP' : 'Avg Days → ADP'}
-          value={avgDaysToAdpComplete !== null ? `${avgDaysToAdpComplete}j` : '—'}
-          sub={FR ? 'embauche → ADP complet' : 'hire → ADP complete'}
+          label={FR ? 'Délai moyen embauche → ADP complet' : 'Avg. Hire to ADP Complete'}
+          value={daysLabel(avgDaysToAdpComplete)}
+          sub={FR ? 'depuis la date d\'entrevue' : 'from interview date'}
           color="#64748B" accent="#E8EAF6" small
         />
       </div>
 
-      {/* Onboarding funnel */}
-      <Card style={{ marginBottom: 22 }}>
-        <SectionHeader title={FR ? 'Entonnoir intégration' : 'Onboarding Funnel'} />
+      {/* ── Onboarding Funnel ── */}
+      <SectionDivider title={FR ? 'Entonnoir d\'intégration' : 'Onboarding Funnel'} color="#2DCDB8" />
+      <Card>
         <Funnel steps={[
           { label: FR ? 'Embauché(e)s' : 'Hired', count: total, color: '#1E2769' },
           { label: FR ? 'ADP Envoyé' : 'ADP Sent', count: adpSent, color: '#3B82F6' },
           { label: FR ? 'ADP Complété' : 'ADP Complete', count: adpComplete, color: '#8B5CF6' },
-          { label: FR ? 'POD Actif' : 'POD Active', count: podActive, color: '#2DCDB8' },
+          { label: FR ? 'POD Actif' : 'POD Active', count: podActive, color: '#059669' },
         ]} />
       </Card>
 
-      {/* Missing docs */}
+      {/* ── Missing Docs Breakdown ── */}
       {docBreakdown.length > 0 && (
-        <Card style={{ marginBottom: 22 }}>
-          <SectionHeader title={FR ? 'Documents manquants par type' : 'Missing Documents by Type'} />
-          <BarChart data={docBreakdown.map(d => ({ label: d.label, count: d.count, color: '#F59E0B' }))} total={total} />
-          <div style={{ marginTop: 12, fontSize: '0.72rem', color: '#9CA3AF' }}>
-            {hasMissingDocs} {FR ? 'candidat(e)s avec au moins un doc manquant' : 'candidates with at least one missing doc'} ({total > 0 ? Math.round((hasMissingDocs/total)*100) : 0}%)
-          </div>
-        </Card>
+        <>
+          <SectionDivider title={FR ? 'Documents manquants' : 'Missing Documents'} color="#F59E0B" />
+          <Card>
+            <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#374151', marginBottom: 16 }}>
+              {FR ? 'Par type de document' : 'By Document Type'}
+              <span style={{ marginLeft: 10, fontSize: '0.72rem', fontWeight: 400, color: '#9CA3AF' }}>
+                — {hasMissingDocs} {FR ? 'candidat(e)s affecté(e)s' : 'candidates affected'} ({total > 0 ? Math.round((hasMissingDocs/total)*100) : 0}%)
+              </span>
+            </div>
+            <BarChart data={docBreakdown.map(d => ({ label: d.label, count: d.count, color: '#F59E0B' }))} total={hasMissingDocs} />
+          </Card>
+        </>
       )}
 
-      {/* Region table */}
+      {/* ── By Region ── */}
       {regionRows.length > 0 && (
-        <Card style={{ marginBottom: 22, padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 20px 12px', borderBottom: '1px solid #F3F4F6' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#374151' }}>{FR ? 'Par région' : 'By Region'}</span>
-          </div>
-          <div style={{ overflowX: 'auto' }}>
+        <>
+          <SectionDivider title={FR ? 'Par région' : 'By Region'} color="#F59E0B" />
+          <TableCard title={FR ? 'Intégration par région' : 'Onboarding by Region'}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr>
-                {[FR ? 'Région' : 'Region', FR ? 'Embauché(e)s' : 'Hired', FR ? 'ADP Envoyé' : 'ADP Sent', FR ? 'ADP Complet' : 'ADP Complete', FR ? 'POD Actif' : 'POD Active', FR ? 'Docs manq.' : 'Miss. Docs'].map((h, i) => (
+                {[FR ? 'Région' : 'Region', FR ? 'Embauché(e)s' : 'Hired', FR ? 'ADP Envoyé' : 'ADP Sent', FR ? 'ADP Complet' : 'ADP Complete', FR ? 'POD Actif' : 'POD Active', FR ? 'Docs manq.' : 'Missing Docs'].map((h, i) => (
                   <th key={h} style={TH(i > 0)}>{h}</th>
                 ))}
               </tr></thead>
@@ -508,8 +549,8 @@ function AdminReport({ candidates, dateFrom, dateTo, filterRegion, filterOffice,
                     <td style={TD(false, r.missingDocs > 0 ? '#D97706' : '#9CA3AF', true)}>{r.missingDocs > 0 ? `⚠ ${r.missingDocs}` : '—'}</td>
                   </tr>
                 ))}
-                <tr style={{ background: '#F9FAFB', borderTop: '2px solid #E5E7EB' }}>
-                  <td style={{ ...TD(true, '#111827'), paddingLeft: 20 }}>TOTAL</td>
+                <tr style={{ background: '#F0F2FF', borderTop: '2px solid #E8EAF6' }}>
+                  <td style={{ ...TD(true, '#1E2769'), paddingLeft: 20 }}>TOTAL</td>
                   <td style={TD(true, '#1E2769', true)}>{total}</td>
                   <td style={TD(true, '#3B82F6', true)}>{adpSent}</td>
                   <td style={TD(true, '#8B5CF6', true)}>{adpComplete}</td>
@@ -518,20 +559,18 @@ function AdminReport({ candidates, dateFrom, dateTo, filterRegion, filterOffice,
                 </tr>
               </tbody>
             </table>
-          </div>
-        </Card>
+          </TableCard>
+        </>
       )}
 
-      {/* Office table */}
+      {/* ── By Office ── */}
       {officeRows.length > 0 && (
-        <Card style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 20px 12px', borderBottom: '1px solid #F3F4F6' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#374151' }}>{FR ? 'Par bureau' : 'By Office'}</span>
-          </div>
-          <div style={{ overflowX: 'auto' }}>
+        <>
+          <SectionDivider title={FR ? 'Par bureau' : 'By Office'} color="#8B5CF6" />
+          <TableCard title={FR ? 'Intégration par bureau (top 20)' : 'Onboarding by Office (top 20)'}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr>
-                {['Code', FR ? 'Bureau' : 'Office', FR ? 'Embauché(e)s' : 'Hired', FR ? 'ADP Envoyé' : 'ADP Sent', FR ? 'ADP Complet' : 'ADP Complete', FR ? 'POD Actif' : 'POD Active', FR ? 'Docs manq.' : 'Miss. Docs'].map((h, i) => (
+                {['Code', FR ? 'Bureau' : 'Office', FR ? 'Embauché(e)s' : 'Hired', FR ? 'ADP Envoyé' : 'ADP Sent', FR ? 'ADP Complet' : 'ADP Complete', FR ? 'POD Actif' : 'POD Active', FR ? 'Docs manq.' : 'Missing Docs'].map((h, i) => (
                   <th key={h} style={TH(i > 1)}>{h}</th>
                 ))}
               </tr></thead>
@@ -549,13 +588,15 @@ function AdminReport({ candidates, dateFrom, dateTo, filterRegion, filterOffice,
                 ))}
               </tbody>
             </table>
-          </div>
-        </Card>
+          </TableCard>
+        </>
       )}
 
       {total === 0 && (
-        <div style={{ textAlign: 'center', padding: 48, color: '#9CA3AF', background: 'white', borderRadius: 10, border: '1px solid #E5E7EB' }}>
-          {FR ? 'Aucune donnée pour cette période.' : 'No data for the selected period.'}
+        <div style={{ textAlign: 'center', padding: 56, color: '#9CA3AF', background: 'white', borderRadius: 12, border: '1px solid #E5E7EB', marginTop: 24 }}>
+          <div style={{ fontSize: '2rem', marginBottom: 12 }}>📊</div>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>{FR ? 'Aucune donnée pour cette période.' : 'No data for the selected period.'}</div>
+          <div style={{ fontSize: '0.78rem' }}>{FR ? 'Essayez une période plus longue ou retirez les filtres.' : 'Try a longer period or remove filters.'}</div>
         </div>
       )}
     </div>
@@ -616,23 +657,26 @@ function OperationsReport({ candidates, dateFrom, dateTo, filterRegion, filterOf
 
   return (
     <div>
-      {/* KPI strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(148px, 1fr))', gap: 10, marginBottom: 22 }}>
+      {/* ── Overview KPIs ── */}
+      <SectionDivider title={FR ? 'Aperçu de la période' : 'Period Overview'} color="#1E2769" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 12 }}>
         <StatCard label={FR ? 'Total candidat(e)s' : 'Total Candidates'} value={total} sub={`${dateFrom || '—'} → ${dateTo || '—'}`} accent="#1E2769" />
         <StatCard label={FR ? 'Présenté(e)s' : 'Showed Up'} value={showed} sub={`${total > 0 ? Math.round((showed/total)*100) : 0}% ${FR ? 'du total' : 'of total'}`} color="#3B82F6" accent="#3B82F6" />
-        <StatCard label={FR ? 'Embauché(e)s' : 'Hired'} value={hired} sub={`${hireRate}% ${FR ? 'taux' : 'hire rate'}`} color={hireRate >= 30 ? '#059669' : '#D97706'} accent="#2DCDB8" />
-        <StatCard label={FR ? 'Intégration commencée' : 'Onboarding Started'} value={onboardingStarted} sub={`${hired > 0 ? Math.round((onboardingStarted/hired)*100) : 0}% ${FR ? 'des embauché(e)s' : 'of hired'}`} color="#8B5CF6" accent="#8B5CF6" />
+        <StatCard label={FR ? 'Embauché(e)s' : 'Hired'} value={hired} sub={`${hireRate}% ${FR ? 'taux d\'embauche' : 'hire rate'}`} color={hireRate >= 30 ? '#059669' : '#D97706'} accent="#2DCDB8" />
+        <StatCard label={FR ? 'POD Actif' : 'POD Active'} value={podActive} sub={`${onboardingRate}% ${FR ? 'des embauché(e)s' : 'of hired'}`} color="#059669" accent="#059669" />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+        <StatCard label={FR ? 'Intégration commencée' : 'Onboarding Started'} value={onboardingStarted} sub={`${hired > 0 ? Math.round((onboardingStarted/hired)*100) : 0}% ${FR ? 'des embauché(e)s' : 'of hired'}`} color="#8B5CF6" accent="#8B5CF6" small />
         <StatCard label={FR ? 'ADP Complété' : 'ADP Complete'} value={adpComplete} color="#3B82F6" accent="#3B82F6" small />
-        <StatCard label={FR ? 'POD Actif' : 'POD Active'} value={podActive} sub={`${onboardingRate}% ${FR ? 'des embauché(e)s' : 'of hired'}`} color="#059669" accent="#2DCDB8" />
         <StatCard label={FR ? 'Absent(e)s' : 'No-Shows'} value={noShow} color="#9CA3AF" accent="#E8EAF6" small />
         <StatCard label={FR ? 'En attente' : 'Pending'} value={pending} color="#F59E0B" accent="#F59E0B" small />
       </div>
 
-      {/* Combined funnel */}
-      <Card style={{ marginBottom: 22 }}>
-        <SectionHeader title={FR ? 'Entonnoir global (recrutement + intégration)' : 'Full Pipeline Funnel (Recruitment + Onboarding)'} />
+      {/* ── Full Pipeline Funnel ── */}
+      <SectionDivider title={FR ? 'Entonnoir global (recrutement + intégration)' : 'Full Pipeline (Recruitment → Onboarding)'} color="#2DCDB8" />
+      <Card>
         <Funnel steps={[
-          { label: FR ? 'Pipeline' : 'In Pipeline', count: total, color: '#1E2769' },
+          { label: FR ? 'En pipeline' : 'In Pipeline', count: total, color: '#1E2769' },
           { label: FR ? 'Présenté(e)s' : 'Showed Up', count: showed, color: '#3B82F6' },
           { label: FR ? 'Embauché(e)s' : 'Hired', count: hired, color: '#2DCDB8' },
           { label: FR ? 'Intégration' : 'Onboarding', count: onboardingStarted, color: '#8B5CF6' },
@@ -640,13 +684,11 @@ function OperationsReport({ candidates, dateFrom, dateTo, filterRegion, filterOf
         ]} />
       </Card>
 
-      {/* Region table */}
+      {/* ── By Region ── */}
       {regionRows.length > 0 && (
-        <Card style={{ marginBottom: 22, padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 20px 12px', borderBottom: '1px solid #F3F4F6' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#374151' }}>{FR ? 'Par région' : 'By Region'}</span>
-          </div>
-          <div style={{ overflowX: 'auto' }}>
+        <>
+          <SectionDivider title={FR ? 'Par région' : 'By Region'} color="#F59E0B" />
+          <TableCard title={FR ? 'Vue combinée par région' : 'Combined View by Region'}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr>
                 {[FR ? 'Région' : 'Region', 'Total', FR ? 'Présenté(e)s' : 'Showed', FR ? 'Embauché(e)s' : 'Hired', FR ? 'Intégration' : 'Onboarding', FR ? 'ADP Complet' : 'ADP Complete', FR ? 'POD Actif' : 'POD Active', FR ? 'Taux emb.' : 'Hire Rate'].map((h, i) => (
@@ -666,8 +708,8 @@ function OperationsReport({ candidates, dateFrom, dateTo, filterRegion, filterOf
                     <td style={TD(true, r.hireRate >= 30 ? '#059669' : '#D97706', true)}>{r.hireRate}%</td>
                   </tr>
                 ))}
-                <tr style={{ background: '#F9FAFB', borderTop: '2px solid #E5E7EB' }}>
-                  <td style={{ ...TD(true, '#111827'), paddingLeft: 20 }}>TOTAL</td>
+                <tr style={{ background: '#F0F2FF', borderTop: '2px solid #E8EAF6' }}>
+                  <td style={{ ...TD(true, '#1E2769'), paddingLeft: 20 }}>TOTAL</td>
                   <td style={TD(true, '#111827', true)}>{total}</td>
                   <td style={TD(true, '#3B82F6', true)}>{showed}</td>
                   <td style={TD(true, '#2DCDB8', true)}>{hired}</td>
@@ -678,17 +720,15 @@ function OperationsReport({ candidates, dateFrom, dateTo, filterRegion, filterOf
                 </tr>
               </tbody>
             </table>
-          </div>
-        </Card>
+          </TableCard>
+        </>
       )}
 
-      {/* Office table */}
+      {/* ── By Office ── */}
       {officeRows.length > 0 && (
-        <Card style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 20px 12px', borderBottom: '1px solid #F3F4F6' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#374151' }}>{FR ? 'Par bureau' : 'By Office'}</span>
-          </div>
-          <div style={{ overflowX: 'auto' }}>
+        <>
+          <SectionDivider title={FR ? 'Par bureau' : 'By Office'} color="#8B5CF6" />
+          <TableCard title={FR ? 'Vue combinée par bureau (top 20)' : 'Combined View by Office (top 20)'}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr>
                 {['Code', FR ? 'Bureau' : 'Office', 'Total', FR ? 'Embauché(e)s' : 'Hired', FR ? 'Intégration' : 'Onboarding', FR ? 'POD Actif' : 'POD Active', FR ? 'Taux emb.' : 'Hire Rate'].map((h, i) => (
@@ -709,13 +749,15 @@ function OperationsReport({ candidates, dateFrom, dateTo, filterRegion, filterOf
                 ))}
               </tbody>
             </table>
-          </div>
-        </Card>
+          </TableCard>
+        </>
       )}
 
       {total === 0 && (
-        <div style={{ textAlign: 'center', padding: 48, color: '#9CA3AF', background: 'white', borderRadius: 10, border: '1px solid #E5E7EB' }}>
-          {FR ? 'Aucune donnée pour cette période.' : 'No data for the selected period.'}
+        <div style={{ textAlign: 'center', padding: 56, color: '#9CA3AF', background: 'white', borderRadius: 12, border: '1px solid #E5E7EB', marginTop: 24 }}>
+          <div style={{ fontSize: '2rem', marginBottom: 12 }}>📊</div>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>{FR ? 'Aucune donnée pour cette période.' : 'No data for the selected period.'}</div>
+          <div style={{ fontSize: '0.78rem' }}>{FR ? 'Essayez une période plus longue ou retirez les filtres.' : 'Try a longer period or remove filters.'}</div>
         </div>
       )}
     </div>
