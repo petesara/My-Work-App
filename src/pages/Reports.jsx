@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import useStore from '../store/useStore'
 import { t } from '../data/translations'
 import { REGIONS, OFFICES } from '../data/offices'
@@ -293,8 +293,19 @@ function getDateRange(preset) {
   return { from: '', to: '' }
 }
 
-function FilterBar({ preset, setPreset, customFrom, setCustomFrom, customTo, setCustomTo, filterRegion, setFilterRegion, filterOffice, setFilterOffice, language, allManagers }) {
+function FilterBar({ preset, setPreset, customFrom, setCustomFrom, customTo, setCustomTo, filterRegion, setFilterRegion, filterOffices, setFilterOffices, language, allManagers }) {
   const FR = language === 'FR'
+  const [officeSearch, setOfficeSearch] = useState('')
+  const [officeDropdownOpen, setOfficeDropdownOpen] = useState(false)
+  const officeRef = useRef(null)
+
+  useEffect(() => {
+    if (!officeDropdownOpen) return
+    const handler = (e) => { if (officeRef.current && !officeRef.current.contains(e.target)) setOfficeDropdownOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [officeDropdownOpen])
+
   const inp = { padding: '6px 10px', borderRadius: 6, border: '1px solid #E5E7EB', fontSize: '0.78rem', outline: 'none', background: 'white' }
   const btn = (active) => ({
     padding: '5px 12px', fontSize: '0.73rem', fontWeight: active ? 700 : 400,
@@ -302,8 +313,16 @@ function FilterBar({ preset, setPreset, customFrom, setCustomFrom, customTo, set
     background: active ? '#1E2769' : 'white', color: active ? 'white' : '#6B7280', cursor: 'pointer',
   })
   const officeOptions = allManagers && allManagers.length > 0 ? allManagers : OFFICES
+  const filteredOfficeOptions = officeOptions.filter(o => {
+    if (filterOffices.includes(o.code)) return false
+    const q = officeSearch.toLowerCase()
+    if (!q) return true
+    return o.code.toLowerCase().includes(q) || (o.name || '').toLowerCase().includes(q) ||
+      (o.region || '').toLowerCase().includes(q)
+  }).slice(0, 15)
+
   return (
-    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start', flexWrap: 'wrap' }}>
       {PRESETS.map((p) => (
         <button key={p.key} onClick={() => setPreset(p.key)} style={btn(preset === p.key)}>
           {FR ? p.FR : p.EN}
@@ -312,7 +331,7 @@ function FilterBar({ preset, setPreset, customFrom, setCustomFrom, customTo, set
       {preset === 'custom' && (
         <>
           <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} style={inp} />
-          <span style={{ fontSize: '0.72rem', color: '#9CA3AF' }}>→</span>
+          <span style={{ fontSize: '0.72rem', color: '#9CA3AF', alignSelf: 'center' }}>→</span>
           <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} style={inp} />
         </>
       )}
@@ -320,30 +339,68 @@ function FilterBar({ preset, setPreset, customFrom, setCustomFrom, customTo, set
         <option value="all">{FR ? 'Toutes les régions' : 'All Regions'}</option>
         {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
       </select>
-      <select value={filterOffice} onChange={(e) => setFilterOffice(e.target.value)} style={inp}>
-        <option value="">{FR ? 'Tous les bureaux' : 'All Offices'}</option>
-        {officeOptions.map((o) => <option key={o.code} value={o.code}>{o.code}{o.name ? ` — ${o.name}` : ''}</option>)}
-      </select>
-      {(filterOffice || filterRegion !== 'all') && (
-        <button onClick={() => { setFilterOffice(''); setFilterRegion('all') }} style={{ ...inp, cursor: 'pointer', color: '#6B7280' }}>✕</button>
+
+      {/* Multi-office filter */}
+      <div ref={officeRef} style={{ position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', padding: '3px 6px', borderRadius: 6, border: '1px solid #E5E7EB', background: 'white', minWidth: 160 }}>
+          {filterOffices.map(code => {
+            const o = officeOptions.find(x => x.code === code)
+            return (
+              <div key={code} style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '2px 7px', background: '#EEF0FF', borderRadius: 12, border: '1px solid #C7CAEA', flexShrink: 0 }}>
+                <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontWeight: 700, fontSize: '0.7rem', color: '#1E2769' }}>{code}</span>
+                {o?.name && <span style={{ fontSize: '0.65rem', color: '#6B7280', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.name}</span>}
+                <button onMouseDown={(e) => { e.preventDefault(); setFilterOffices(prev => prev.filter(c => c !== code)) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', fontSize: '0.85rem', lineHeight: 1, padding: 0, marginLeft: 1 }}>×</button>
+              </div>
+            )
+          })}
+          <input
+            value={officeSearch}
+            onChange={(e) => { setOfficeSearch(e.target.value); setOfficeDropdownOpen(true) }}
+            onFocus={() => setOfficeDropdownOpen(true)}
+            style={{ border: 'none', outline: 'none', fontSize: '0.78rem', background: 'transparent', minWidth: 100, padding: '2px 2px' }}
+            placeholder={filterOffices.length === 0 ? (FR ? 'Bureaux...' : 'Offices...') : '+'}
+          />
+        </div>
+        {officeDropdownOpen && filteredOfficeOptions.length > 0 && (
+          <div style={{ position: 'absolute', top: 'calc(100% + 2px)', left: 0, background: 'white', border: '1px solid #E8EAF6', borderRadius: 8, boxShadow: '0 4px 16px rgba(30,39,105,0.1)', zIndex: 200, minWidth: 220, maxHeight: 180, overflowY: 'auto' }}>
+            {filteredOfficeOptions.map(o => (
+              <button key={o.code}
+                onMouseDown={(e) => { e.preventDefault(); setFilterOffices(prev => [...prev, o.code]); setOfficeSearch(''); setOfficeDropdownOpen(false) }}
+                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 12px', background: 'transparent', border: 'none', borderBottom: '1px solid #F3F4F6', cursor: 'pointer', fontSize: '0.78rem' }}
+                onMouseEnter={e => e.currentTarget.style.background = '#F6F7FC'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <span style={{ fontWeight: 700, fontFamily: 'IBM Plex Mono, monospace', color: '#1E2769', marginRight: 6 }}>{o.code}</span>
+                <span style={{ color: '#6B7280' }}>{o.name}</span>
+                {o.region && <span style={{ color: '#9CA3AF', fontSize: '0.68rem', marginLeft: 4 }}>· {o.region}</span>}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {(filterOffices.length > 0 || filterRegion !== 'all') && (
+        <button onClick={() => { setFilterOffices([]); setFilterRegion('all') }} style={{ ...inp, cursor: 'pointer', color: '#6B7280', alignSelf: 'center' }}>
+          ✕ {FR ? 'Effacer' : 'Clear'}
+        </button>
       )}
     </div>
   )
 }
 
 // ── Recruitment Report ────────────────────────────────────────────────────────
-function RecruitmentReport({ candidates, dateFrom, dateTo, filterRegion, filterOffice, language, managers }) {
+function RecruitmentReport({ candidates, dateFrom, dateTo, filterRegion, filterOffices, language, managers }) {
   const FR = language === 'FR'
 
   const filtered = useMemo(() => candidates.filter((c) => {
     if (c.isHistorical) return false
-    if (filterOffice && !(c.officeCodes || [c.officeCode]).includes(filterOffice)) return false
+    if (filterOffices.length > 0 && !filterOffices.some(f => (c.officeCodes || [c.officeCode]).includes(f))) return false
     if (filterRegion !== 'all' && c.region !== filterRegion) return false
     const d = c.interviewDate || c.createdAt?.slice(0, 10) || ''
     if (dateFrom && d < dateFrom) return false
     if (dateTo && d > dateTo) return false
     return true
-  }), [candidates, dateFrom, dateTo, filterOffice, filterRegion])
+  }), [candidates, dateFrom, dateTo, filterOffices, filterRegion])
 
   const total = filtered.length
   const hired = filtered.filter(c => c.status === 'Hired').length
@@ -869,19 +926,19 @@ function RecruitmentReport({ candidates, dateFrom, dateTo, filterRegion, filterO
 }
 
 // ── Admin Report ──────────────────────────────────────────────────────────────
-function AdminReport({ candidates, dateFrom, dateTo, filterRegion, filterOffice, language, managers }) {
+function AdminReport({ candidates, dateFrom, dateTo, filterRegion, filterOffices, language, managers }) {
   const FR = language === 'FR'
 
   const hiredCandidates = useMemo(() => candidates.filter((c) => {
     if (c.isHistorical) return false
     if (c.status !== 'Hired') return false
-    if (filterOffice && !(c.officeCodes || [c.officeCode]).includes(filterOffice)) return false
+    if (filterOffices.length > 0 && !filterOffices.some(f => (c.officeCodes || [c.officeCode]).includes(f))) return false
     if (filterRegion !== 'all' && c.region !== filterRegion) return false
     const d = c.interviewDate || c.createdAt?.slice(0, 10) || ''
     if (dateFrom && d < dateFrom) return false
     if (dateTo && d > dateTo) return false
     return true
-  }), [candidates, dateFrom, dateTo, filterOffice, filterRegion])
+  }), [candidates, dateFrom, dateTo, filterOffices, filterRegion])
 
   const total = hiredCandidates.length
   const adpSent = hiredCandidates.filter(c => c.onboarding?.adpSentDate).length
@@ -1261,18 +1318,18 @@ function AdminReport({ candidates, dateFrom, dateTo, filterRegion, filterOffice,
 }
 
 // ── Operations Report ─────────────────────────────────────────────────────────
-function OperationsReport({ candidates, dateFrom, dateTo, filterRegion, filterOffice, language, managers }) {
+function OperationsReport({ candidates, dateFrom, dateTo, filterRegion, filterOffices, language, managers }) {
   const FR = language === 'FR'
 
   const filtered = useMemo(() => candidates.filter((c) => {
     if (c.isHistorical) return false
-    if (filterOffice && !(c.officeCodes || [c.officeCode]).includes(filterOffice)) return false
+    if (filterOffices.length > 0 && !filterOffices.some(f => (c.officeCodes || [c.officeCode]).includes(f))) return false
     if (filterRegion !== 'all' && c.region !== filterRegion) return false
     const d = c.interviewDate || c.createdAt?.slice(0, 10) || ''
     if (dateFrom && d < dateFrom) return false
     if (dateTo && d > dateTo) return false
     return true
-  }), [candidates, dateFrom, dateTo, filterOffice, filterRegion])
+  }), [candidates, dateFrom, dateTo, filterOffices, filterRegion])
 
   const total = filtered.length
   const noShow = filtered.filter(c => c.status === 'No Show').length
@@ -1617,7 +1674,7 @@ export default function Reports() {
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [filterRegion, setFilterRegion] = useState('all')
-  const [filterOffice, setFilterOffice] = useState('')
+  const [filterOffices, setFilterOffices] = useState([])
 
   const { from: dateFrom, to: dateTo } = useMemo(() => {
     if (preset === 'custom') return { from: customFrom, to: customTo }
@@ -1627,8 +1684,8 @@ export default function Reports() {
   const roleLabel = { recruitment: FR ? 'Recrutement' : 'Recruitment', admin: 'Admin', operations: FR ? 'Opérations' : 'Operations' }[role] || ''
   const periodLabel = (() => { const p = PRESETS.find(p => p.key === preset); return p ? (FR ? p.FR : p.EN) : '' })()
 
-  const filterProps = { preset, setPreset, customFrom, setCustomFrom, customTo, setCustomTo, filterRegion, setFilterRegion, filterOffice, setFilterOffice, language, allManagers: managers }
-  const reportProps = { candidates, dateFrom, dateTo, filterRegion, filterOffice, language, managers }
+  const filterProps = { preset, setPreset, customFrom, setCustomFrom, customTo, setCustomTo, filterRegion, setFilterRegion, filterOffices, setFilterOffices, language, allManagers: managers }
+  const reportProps = { candidates, dateFrom, dateTo, filterRegion, filterOffices, language, managers }
 
   return (
     <div style={{ padding: 24 }}>
@@ -1649,7 +1706,7 @@ export default function Reports() {
       {/* Print header */}
       <div className="print-only" style={{ display: 'none', marginBottom: 20 }}>
         <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1E2769' }}>{t('reports', language)} — {roleLabel}</div>
-        <div style={{ fontSize: '0.75rem', color: '#9CA3AF', marginTop: 4 }}>{periodLabel} · {dateFrom || '—'} → {dateTo || '—'}{filterRegion !== 'all' ? ` · ${filterRegion}` : ''}{filterOffice ? ` · ${filterOffice}` : ''}</div>
+        <div style={{ fontSize: '0.75rem', color: '#9CA3AF', marginTop: 4 }}>{periodLabel} · {dateFrom || '—'} → {dateTo || '—'}{filterRegion !== 'all' ? ` · ${filterRegion}` : ''}{filterOffices.length > 0 ? ` · ${filterOffices.join(', ')}` : ''}</div>
       </div>
 
       {/* Filters */}
