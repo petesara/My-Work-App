@@ -889,7 +889,7 @@ function AdminReport({ candidates, dateFrom, dateTo, filterRegion, filterOffice,
   const podActive = hiredCandidates.filter(c => c.onboarding?.podActivatedDate).length
   const withMissingDocs = hiredCandidates.filter(c => c.onboarding?.missingDocs && Object.values(c.onboarding.missingDocs).some(Boolean))
   const missingDocsCount = withMissingDocs.length
-  const missingDocsRate = pct(missingDocsCount, total)
+  const missingDocsRate = pct(missingDocsCount, adpSent || total)
 
   // ── Onboarding speed — per-stage breakdown ──────────────────────────────
   const stage1Times = hiredCandidates
@@ -924,7 +924,7 @@ function AdminReport({ candidates, dateFrom, dateTo, filterRegion, filterOffice,
   const docBreakdown = DOC_KEYS.map(key => ({
     key, label: t(key, language),
     count: hiredCandidates.filter(c => c.onboarding?.missingDocs?.[key]).length,
-    rate: pct(hiredCandidates.filter(c => c.onboarding?.missingDocs?.[key]).length, total),
+    rate: pct(hiredCandidates.filter(c => c.onboarding?.missingDocs?.[key]).length, adpSent || total),
   })).filter(d => d.count > 0).sort((a, b) => b.count - a.count)
 
   // ── Region & office breakdown ───────────────────────────────────────────
@@ -941,7 +941,7 @@ function AdminReport({ candidates, dateFrom, dateTo, filterRegion, filterOffice,
       adpComplete: rc.filter(c => c.onboarding?.adpCompleteDate).length,
       podActive: rc.filter(c => c.onboarding?.podActivatedDate).length,
       missingDocs: rcMissing,
-      missingDocsRate: pct(rcMissing, rc.length),
+      missingDocsRate: pct(rcMissing, rc.filter(c => c.onboarding?.adpSentDate).length || rc.length),
       avgDaysToPod: avgOf(rcPodTimes),
       podRate: pct(rc.filter(c => c.onboarding?.podActivatedDate).length, rc.length),
     }
@@ -959,7 +959,7 @@ function AdminReport({ candidates, dateFrom, dateTo, filterRegion, filterOffice,
       adpComplete: oc.filter(c => c.onboarding?.adpCompleteDate).length,
       podActive: oc.filter(c => c.onboarding?.podActivatedDate).length,
       missingDocs: ocMissing,
-      missingDocsRate: pct(ocMissing, oc.length),
+      missingDocsRate: pct(ocMissing, oc.filter(c => c.onboarding?.adpSentDate).length || oc.length),
       avgDaysToPod: avgOf(ocPodTimes),
       podRate: pct(oc.filter(c => c.onboarding?.podActivatedDate).length, oc.length),
     }
@@ -1042,8 +1042,8 @@ function AdminReport({ candidates, dateFrom, dateTo, filterRegion, filterOffice,
           flag={podRate >= 80 ? 'good' : podRate < 60 ? 'bad' : 'warn'} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-        <StatCard label={FR ? 'Taux docs manquants' : 'Missing Docs Rate'} value={`${missingDocsRate}%`}
-          sub={`${missingDocsCount} ${FR ? 'candidat(e)s affecté(e)s' : 'candidates'} / ${total} ${FR ? 'total' : 'total'}`}
+        <StatCard label={FR ? 'Docs manquants' : 'Missing Docs'} value={`${missingDocsCount} (${missingDocsRate}%)`}
+          sub={`${FR ? 'sur' : 'of'} ${adpSent || total} ${FR ? 'en intégration' : 'in onboarding'}`}
           color={missingDocsRate > 20 ? '#D97706' : '#059669'} accent={missingDocsRate > 20 ? '#F59E0B' : '#2DCDB8'}
           flag={missingDocsRate > 30 ? 'bad' : missingDocsRate > 15 ? 'warn' : 'good'} small />
         <StatCard label={FR ? 'Délai moyen → POD' : 'Avg Days → POD Active'} value={avgTotal !== null ? `${avgTotal} days` : '—'}
@@ -1086,7 +1086,7 @@ function AdminReport({ candidates, dateFrom, dateTo, filterRegion, filterOffice,
             <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#374151', marginBottom: 16 }}>
               {FR ? 'Taux par type de document' : 'Rate by Document Type'}
               <span style={{ marginLeft: 8, fontSize: '0.72rem', fontWeight: 400, color: '#9CA3AF' }}>
-                — {FR ? 'taux = documents manquants / total embauché(e)s' : 'rate = missing / total hired'}
+                — {FR ? 'taux = docs manquants / intégration démarrée (ADP envoyé)' : 'rate = missing / ADP started (not total hired)'}
               </span>
             </div>
             <BarChart
@@ -1096,8 +1096,8 @@ function AdminReport({ candidates, dateFrom, dateTo, filterRegion, filterOffice,
             <div style={{ marginTop: 14, padding: '12px 14px', background: '#FEF9EC', borderRadius: 8, border: '1px solid #FDE68A' }}>
               <span style={{ fontSize: '0.72rem', color: '#92400E' }}>
                 {FR
-                  ? `${missingDocsCount} candidat(e)s (${missingDocsRate}%) ont ≥1 document manquant. Les taux indiqués sont calculés sur les ${total} embauché(e)s — permettant la comparaison entre bureaux de différentes tailles.`
-                  : `${missingDocsCount} candidates (${missingDocsRate}%) have ≥1 missing doc. Rates are calculated over ${total} total hires — allowing fair comparison across offices of different sizes.`}
+                  ? `${missingDocsCount} candidat(e)s (${missingDocsRate}%) ont ≥1 document manquant sur ${adpSent || total} en intégration. Les taux sont calculés sur les candidat(e)s ayant reçu l'ADP, pas sur le total embauché(e)s.`
+                  : `${missingDocsCount} candidates (${missingDocsRate}%) have ≥1 missing doc out of ${adpSent || total} in onboarding. Rates use ADP-started count, not total hired.`}
               </span>
             </div>
           </Card>
@@ -1135,7 +1135,7 @@ function AdminReport({ candidates, dateFrom, dateTo, filterRegion, filterOffice,
                       <VsBadge value={r.podRate} mean={pct(podActive, total)} higherIsBetter />
                     </td>
                     <td style={{ ...TD(true, r.missingDocsRate > 20 ? '#DC2626' : r.missingDocsRate > 10 ? '#D97706' : '#059669', true) }}>
-                      {r.missingDocsRate}%
+                      {r.missingDocs} ({r.missingDocsRate}%)
                       <VsBadge value={r.missingDocsRate} mean={missingRateStats.mean} higherIsBetter={false} />
                     </td>
                     <td style={{ ...TD(false, r.avgDaysToPod !== null && r.avgDaysToPod > 13 ? '#D97706' : '#059669', true) }}>
@@ -1151,7 +1151,7 @@ function AdminReport({ candidates, dateFrom, dateTo, filterRegion, filterOffice,
                   <td style={TD(true, '#8B5CF6', true)}>{adpComplete}</td>
                   <td style={TD(true, '#059669', true)}>{podActive}</td>
                   <td style={TD(true, podRate >= 80 ? '#059669' : '#D97706', true)}>{podRate}% <span style={{ fontSize: '0.68rem', fontWeight: 400, color: '#94A3B8' }}>avg</span></td>
-                  <td style={TD(true, missingDocsRate > 20 ? '#DC2626' : '#059669', true)}>{missingDocsRate}% <span style={{ fontSize: '0.68rem', fontWeight: 400, color: '#94A3B8' }}>avg</span></td>
+                  <td style={TD(true, missingDocsRate > 20 ? '#DC2626' : '#059669', true)}>{missingDocsCount} ({missingDocsRate}%) <span style={{ fontSize: '0.68rem', fontWeight: 400, color: '#94A3B8' }}>avg%</span></td>
                   <td style={TD(true, '#64748B', true)}>{avgTotal !== null ? `${avgTotal}d` : '—'}</td>
                 </tr>
               </tbody>
@@ -1193,7 +1193,7 @@ function AdminReport({ candidates, dateFrom, dateTo, filterRegion, filterOffice,
                       <VsBadge value={o.podRate} mean={pct(podActive, total)} higherIsBetter />
                     </td>
                     <td style={{ ...TD(true, o.missingDocsRate > 20 ? '#DC2626' : o.missingDocsRate > 10 ? '#D97706' : '#059669', true) }}>
-                      {o.missingDocsRate}%
+                      {o.missingDocs} ({o.missingDocsRate}%)
                       <VsBadge value={o.missingDocsRate} mean={missingDocsRate} higherIsBetter={false} />
                     </td>
                     <td style={{ ...TD(false, o.avgDaysToPod !== null && o.avgDaysToPod > 13 ? '#D97706' : '#059669', true) }}>
@@ -1322,7 +1322,8 @@ function OperationsReport({ candidates, dateFrom, dateTo, filterRegion, filterOf
       hireRate: pct(rcHired, rcShowed),
       podRate: pct(rcPod, rcHired),
       endToEndRate: pct(rcPod, rc.length),
-      missingDocsRate: pct(rcMissing, rcHired),
+      missingDocs: rcMissing,
+      missingDocsRate: pct(rcMissing, rcHired || rc.length),
     }
   }).filter(Boolean)
 
@@ -1489,7 +1490,7 @@ function OperationsReport({ candidates, dateFrom, dateTo, filterRegion, filterOf
                       <VsBadge value={r.endToEndRate} mean={e2eStats.mean} higherIsBetter />
                     </td>
                     <td style={{ ...TD(false, r.missingDocsRate > 20 ? '#DC2626' : '#9CA3AF', true) }}>
-                      {r.missingDocsRate > 0 ? `${r.missingDocsRate}%` : '—'}
+                      {r.missingDocsRate > 0 ? `${r.missingDocs} (${r.missingDocsRate}%)` : '—'}
                     </td>
                   </tr>
                 ))}
