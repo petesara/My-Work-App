@@ -81,6 +81,7 @@ export default function Pipeline() {
 
   const handleRegionChange = (r) => {
     setFilterRegion(r)
+    setFilterOffices([])
     localStorage.setItem('pipeline_region', r)
   }
 
@@ -92,7 +93,7 @@ export default function Pipeline() {
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterRegion, setFilterRegion] = useState(() => localStorage.getItem('pipeline_region') || 'all')
   const [filterLang, setFilterLang] = useState('all')
-  const [filterOffice, setFilterOffice] = useState('')
+  const [filterOffices, setFilterOffices] = useState([])
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
 
@@ -137,7 +138,7 @@ export default function Pipeline() {
     if (filterStatus !== 'all' && c.status !== filterStatus) return false
     if (filterRegion !== 'all' && c.region !== filterRegion) return false
     if (filterLang !== 'all' && c.languagePreference !== filterLang) return false
-    if (filterOffice && c.officeCode !== filterOffice) return false
+    if (filterOffices.length > 0 && !filterOffices.some(f => (c.officeCodes || [c.officeCode]).includes(f))) return false
     if (dateFrom && c.interviewDate && c.interviewDate < dateFrom) return false
     if (dateTo && c.interviewDate && c.interviewDate > dateTo) return false
     return true
@@ -304,6 +305,47 @@ export default function Pipeline() {
         })}
       </div>
 
+      {/* Office code multi-select */}
+      {(() => {
+        const visibleOffices = OFFICES.filter(o => filterRegion === 'all' || o.region === filterRegion)
+        if (visibleOffices.length === 0) return null
+        return (
+          <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginRight: 4 }}>
+              {language === 'FR' ? 'Bureaux' : 'Offices'}
+            </span>
+            {visibleOffices.map(o => {
+              const active = filterOffices.includes(o.code)
+              return (
+                <button
+                  key={o.code}
+                  onClick={() => setFilterOffices(prev =>
+                    prev.includes(o.code) ? prev.filter(c => c !== o.code) : [...prev, o.code]
+                  )}
+                  style={{
+                    padding: '4px 12px', fontSize: '0.73rem', fontWeight: active ? 700 : 400,
+                    borderRadius: 12, border: `1.5px solid ${active ? '#1E2769' : '#E8EAF6'}`,
+                    background: active ? '#1E2769' : 'white',
+                    color: active ? '#fff' : '#374151',
+                    cursor: 'pointer', transition: 'all 0.12s',
+                  }}
+                >
+                  {o.code}
+                </button>
+              )
+            })}
+            {filterOffices.length > 0 && (
+              <button
+                onClick={() => setFilterOffices([])}
+                style={{ padding: '4px 8px', fontSize: '0.7rem', borderRadius: 10, border: '1px solid #E8EAF6', background: 'white', color: '#9CA3AF', cursor: 'pointer' }}
+              >
+                ✕ {language === 'FR' ? 'Effacer' : 'Clear'}
+              </button>
+            )}
+          </div>
+        )
+      })()}
+
       {/* Filters */}
       <div style={{
         background: 'white',
@@ -336,8 +378,8 @@ export default function Pipeline() {
         <FocusInput type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={{ padding: '5px 8px', borderRadius: 8, border: '1px solid #E8EAF6', fontSize: '0.75rem' }} />
         <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>→</span>
         <FocusInput type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={{ padding: '5px 8px', borderRadius: 8, border: '1px solid #E8EAF6', fontSize: '0.75rem' }} />
-        {(search || filterStatus !== 'all' || filterRegion !== 'all' || filterLang !== 'all' || filterOffice || dateFrom || dateTo) && (
-          <button onClick={() => { setSearch(''); setFilterStatus('all'); handleRegionChange('all'); setFilterLang('all'); setFilterOffice(''); setDateFrom(''); setDateTo('') }}
+        {(search || filterStatus !== 'all' || filterRegion !== 'all' || filterLang !== 'all' || filterOffices.length > 0 || dateFrom || dateTo) && (
+          <button onClick={() => { setSearch(''); setFilterStatus('all'); handleRegionChange('all'); setFilterLang('all'); setFilterOffices([]); setDateFrom(''); setDateTo('') }}
             style={{ padding: '5px 10px', fontSize: '0.75rem', borderRadius: 6, border: '1px solid #E8EAF6', background: 'white', color: '#64748B', cursor: 'pointer' }}>
             ✕ Clear
           </button>

@@ -8,12 +8,14 @@ const ROLE_DESCRIPTIONS = {
   EN: {
     recruitment: 'Add candidates, manage pipeline, interview tracking',
     admin: 'Onboarding, manager directory, system setup',
-    operations: 'View pipeline, monitor onboarding progress',
+    operations: 'Full pipeline access, onboarding oversight, reports',
+    field_ops: 'Read-only onboarding view — filter by your office codes',
   },
   FR: {
     recruitment: 'Ajouter des candidats, gérer le pipeline, suivi des entrevues',
     admin: "Intégration, répertoire des gestionnaires, configuration du système",
-    operations: "Voir le pipeline, surveiller le progrès d'intégration",
+    operations: "Accès pipeline complet, supervision d'intégration, rapports",
+    field_ops: "Vue intégration en lecture seule — filtrez par vos bureaux",
   },
 }
 
@@ -21,6 +23,7 @@ const DEFAULT_ROUTES = {
   recruitment: '/pipeline',
   admin: '/onboarding',
   operations: '/pipeline',
+  field_ops: '/onboarding',
 }
 
 export default function Landing() {
@@ -101,14 +104,14 @@ export default function Landing() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
           gap: 12,
           width: '100%',
-          maxWidth: 680,
+          maxWidth: 900,
           marginBottom: 32,
         }}
       >
-        {['recruitment', 'admin', 'operations'].map((role) => {
+        {['recruitment', 'admin', 'operations', 'field_ops'].map((role) => {
           const isSelected = selectedRole === role
           return (
             <button

@@ -24,6 +24,9 @@ const NAV_ITEMS = {
     { to: '/onboarding', key: 'onboarding', icon: '✦' },
     { to: '/reports', key: 'reports', icon: '▣' },
   ],
+  field_ops: [
+    { to: '/onboarding', key: 'onboarding', icon: '✦' },
+  ],
 }
 
 export default function Sidebar() {

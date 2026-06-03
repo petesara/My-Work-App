@@ -50,7 +50,7 @@ function StepBar({ steps }) {
   )
 }
 
-function OnboardingRow({ candidate, language, role, selected, onToggleSelect }) {
+function OnboardingRow({ candidate, language, role, selected, onToggleSelect, isReadOnly }) {
   const updateCandidate = useStore((s) => s.updateCandidate)
   const addToast = useStore((s) => s.addToast)
   const [expanded, setExpanded] = useState(false)
@@ -58,6 +58,7 @@ function OnboardingRow({ candidate, language, role, selected, onToggleSelect }) 
   const isOps = role === 'operations'
   const isRecruitment = role === 'recruitment'
   const isAdmin = role === 'admin'
+  const isReadOnly_eff = isReadOnly || false
 
   const ob = candidate.onboarding || {
     userCreated: false,
@@ -307,21 +308,21 @@ function OnboardingRow({ candidate, language, role, selected, onToggleSelect }) 
                 <input
                   type="date"
                   value={ob.adpSentDate || ''}
-                  disabled={!candidate.payrollId || isOps || isRecruitment}
+                  disabled={!candidate.payrollId || isOps || isRecruitment || isReadOnly_eff}
                   onChange={(e) => update('adpSentDate', e.target.value)}
-                  style={dateInpStyle(!candidate.payrollId || isOps || isRecruitment)}
+                  style={dateInpStyle(!candidate.payrollId || isOps || isRecruitment || isReadOnly_eff)}
                 />
               </div>
               <div style={{ marginBottom: 8 }}>
                 <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#374151', marginBottom: 6 }}>{t('missingDocs', language)}:</div>
                 {['directDeposit', 'sin', 'govId', 'contract', 'workPermit'].map((doc) => (
-                  <label key={doc} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, cursor: (isOps || isRecruitment) ? 'not-allowed' : 'pointer' }}>
+                  <label key={doc} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, cursor: (isOps || isRecruitment || isReadOnly_eff) ? 'not-allowed' : 'pointer' }}>
                     <input
                       type="checkbox"
                       checked={ob.missingDocs?.[doc] || false}
-                      disabled={isOps || isRecruitment}
+                      disabled={isOps || isRecruitment || isReadOnly_eff}
                       onChange={(e) => update(`missingDocs.${doc}`, e.target.checked)}
-                      style={{ ...checkboxStyle(isOps || isRecruitment), accentColor: '#F59E0B' }}
+                      style={{ ...checkboxStyle(isOps || isRecruitment || isReadOnly_eff), accentColor: '#F59E0B' }}
                     />
                     <span style={{ fontSize: '0.78rem', color: ob.missingDocs?.[doc] ? '#92400E' : '#64748B' }}>
                       {t(doc, language)}
@@ -748,6 +749,9 @@ export default function OnboardingTracker() {
   const [filter, setFilter] = useState('all')
   const [filterRegion, setFilterRegion] = useState('all')
   const [filterOffice, setFilterOffice] = useState('')
+  const [filterOffices, setFilterOffices] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('fieldops_offices') || '[]') } catch { return [] }
+  })
   const [search, setSearch] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -757,7 +761,14 @@ export default function OnboardingTracker() {
   const [showImport, setShowImport] = useState(false)
 
   const isAdmin = role === 'admin'
+  const isFieldOps = role === 'field_ops'
   const FR = language === 'FR'
+
+  const setFieldOpsOffices = (offices) => {
+    const next = typeof offices === 'function' ? offices(filterOffices) : offices
+    setFilterOffices(next)
+    localStorage.setItem('fieldops_offices', JSON.stringify(next))
+  }
 
   const hist2026InProgress = candidates.filter((c) =>
     c.isHistorical &&
@@ -778,7 +789,11 @@ export default function OnboardingTracker() {
       return false
     }
     if (filterRegion !== 'all' && c.region !== filterRegion) return false
-    if (filterOffice && c.officeCode !== filterOffice) return false
+    if (isFieldOps) {
+      if (filterOffices.length > 0 && !filterOffices.some(f => (c.officeCodes || [c.officeCode]).includes(f))) return false
+    } else {
+      if (filterOffice && c.officeCode !== filterOffice) return false
+    }
     if (dateFrom && (c.onboarding?.podActivatedDate || '') < dateFrom) return false
     if (dateTo && (c.onboarding?.podActivatedDate || '') > dateTo) return false
     if (search) {
@@ -872,6 +887,11 @@ export default function OnboardingTracker() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1E2769', margin: 0, letterSpacing: '-0.02em' }}>{t('onboarding', language)}</h1>
+          {isFieldOps && (
+            <div style={{ fontSize: '0.72rem', background: '#EEF2FF', color: '#3730A3', border: '1px solid #C7D2FE', borderRadius: 6, padding: '4px 10px', marginTop: 6, display: 'inline-block' }}>
+              {FR ? 'Mode lecture seule' : 'Read-only view'}
+            </div>
+          )}
           <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '4px 0 0' }}>
             {filtered.length} / {hired.length} {FR ? 'candidat(e)s embauché(e)s' : 'hired candidates'}
           </p>
@@ -912,6 +932,47 @@ export default function OnboardingTracker() {
           </button>
         ))}
       </div>
+
+      {isFieldOps && (
+        <div style={{ background: '#EEF2FF', border: '1px solid #C7D2FE', borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
+          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#3730A3', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+            {FR ? 'Vos bureaux' : 'Your Offices'} — {FR ? 'cliquez pour filtrer' : 'click to filter'}
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {OFFICES.map(o => {
+              const active = filterOffices.includes(o.code)
+              return (
+                <button
+                  key={o.code}
+                  onClick={() => setFieldOpsOffices(prev =>
+                    prev.includes(o.code) ? prev.filter(c => c !== o.code) : [...prev, o.code]
+                  )}
+                  style={{
+                    padding: '5px 12px', fontSize: '0.75rem', fontWeight: active ? 700 : 400,
+                    borderRadius: 12, border: `1.5px solid ${active ? '#6366F1' : '#C7D2FE'}`,
+                    background: active ? '#6366F1' : 'white',
+                    color: active ? '#fff' : '#3730A3',
+                    cursor: 'pointer', transition: 'all 0.12s',
+                  }}
+                >
+                  {o.code}
+                  {active && <span style={{ marginLeft: 5, opacity: 0.7 }}>✓</span>}
+                </button>
+              )
+            })}
+            {filterOffices.length > 0 && (
+              <button onClick={() => setFieldOpsOffices([])} style={{ padding: '5px 10px', fontSize: '0.72rem', borderRadius: 10, border: '1px solid #C7D2FE', background: 'white', color: '#6B7280', cursor: 'pointer' }}>
+                ✕ {FR ? 'Tout effacer' : 'Clear all'}
+              </button>
+            )}
+          </div>
+          {filterOffices.length > 0 && (
+            <div style={{ marginTop: 8, fontSize: '0.7rem', color: '#6366F1', fontWeight: 600 }}>
+              {filterOffices.length} {FR ? 'bureau(x) sélectionné(s)' : `office${filterOffices.length !== 1 ? 's' : ''} selected`}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Filter bar */}
       <div style={{ background: 'white', border: '1px solid #E8EAF6', borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
@@ -1035,6 +1096,7 @@ export default function OnboardingTracker() {
             role={role}
             selected={selected.has(c.id)}
             onToggleSelect={toggleSelect}
+            isReadOnly={isFieldOps}
           />
         ))
       )}
