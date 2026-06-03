@@ -251,6 +251,249 @@ function checkDuplicate(row, candidates) {
   })
 }
 
+// ── Calendly CSV parser ────────────────────────────────────────────────────────
+function parseCalendlyCSV(text) {
+  const rows = []
+  let row = []
+  let cell = ''
+  let inQuote = false
+  for (let i = 0; i <= text.length; i++) {
+    const ch = text[i]
+    if (ch === '"') {
+      if (inQuote && text[i + 1] === '"') { cell += '"'; i++ }
+      else inQuote = !inQuote
+    } else if ((ch === ',' && !inQuote)) {
+      row.push(cell); cell = ''
+    } else if ((ch === '\n' || ch === undefined) && !inQuote) {
+      row.push(cell); cell = ''
+      if (row.some(c => c.trim())) rows.push(row)
+      row = []
+    } else if (ch !== '\r') {
+      cell += ch
+    }
+  }
+  return rows
+}
+
+function mapCalendlyHeader(h) {
+  const lower = h.trim().toLowerCase()
+  if (lower === 'name') return 'name'
+  if (lower === 'email') return 'email'
+  if (lower.includes('phone')) return 'phone'
+  if (lower.includes('city')) return 'calendlyCity'
+  if (lower.includes('fundraising') || lower.includes('volunteering') || lower.includes('nonprofit')) return 'calendlyFundraisingBg'
+  if (lower.includes('connect') || lower.includes('inspire') || lower.includes('great fundraiser')) return 'calendlyConnecting'
+  if (lower.includes('earliest') || lower.includes('start date')) return 'calendlyStartDate'
+  if (lower.includes('accommodation')) return 'calendlyAccommodations'
+  return null
+}
+
+function CalendlyImportTab({ language, onClose }) {
+  const candidates = useStore(s => s.candidates)
+  const doNotHireList = useStore(s => s.doNotHireList)
+  const addCandidate = useStore(s => s.addCandidate)
+  const addToast = useStore(s => s.addToast)
+
+  const [file, setFile] = useState(null)
+  const [parsed, setParsed] = useState(null)
+  const [checked, setChecked] = useState([])
+  const [error, setError] = useState('')
+  const fileRef = useRef(null)
+  const isFR = language === 'FR'
+
+  const thS = { padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid #E5E7EB', fontWeight: 600, color: '#6B7280', whiteSpace: 'nowrap' }
+
+  const statusLabel = (row) => {
+    if (row._isDnh) return 'DNH'
+    if (row._isDuplicate) return isFR ? 'Doublon' : 'Duplicate'
+    return 'OK'
+  }
+  const statusStyle = (row) => {
+    if (row._isDnh) return { background: '#FFD6E0', color: '#991B1B', padding: '2px 8px', borderRadius: 10, fontSize: '0.7rem', fontWeight: 700 }
+    if (row._isDuplicate) return { background: '#FEF3C7', color: '#92400E', padding: '2px 8px', borderRadius: 10, fontSize: '0.7rem', fontWeight: 700 }
+    return { background: '#D1FAE5', color: '#065F46', padding: '2px 8px', borderRadius: 10, fontSize: '0.7rem', fontWeight: 700 }
+  }
+
+  const handleFileChange = (e) => {
+    const f = e.target.files[0]
+    if (!f) return
+    setError(''); setParsed(null); setFile(f)
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      try {
+        const rows = parseCalendlyCSV(ev.target.result)
+        if (rows.length < 2) {
+          setError(isFR ? 'Le fichier CSV doit contenir au moins une ligne de données.' : 'CSV must contain at least one data row.')
+          setFile(null); return
+        }
+        const mappedHeaders = rows[0].map(mapCalendlyHeader)
+        const result = []
+        for (let i = 1; i < rows.length; i++) {
+          const cells = rows[i]
+          const row = {}
+          mappedHeaders.forEach((field, j) => {
+            if (!field) return
+            const val = (cells[j] || '').trim()
+            if (field === 'name') {
+              const parts = val.split(' ').filter(Boolean)
+              row.firstName = parts.length > 1 ? parts.slice(0, -1).join(' ') : val
+              row.lastName = parts.length > 1 ? parts[parts.length - 1] : ''
+            } else if (field === 'phone') {
+              row.phone = formatPhone(val)
+            } else {
+              row[field] = val
+            }
+          })
+          if (!row.firstName && !row.lastName) continue
+          result.push(row)
+        }
+        if (!result.length) { setError(isFR ? 'Aucune ligne valide.' : 'No valid rows found.'); setFile(null); return }
+        const annotated = result.map(row => ({
+          ...row,
+          _isDnh: checkDnh(row, doNotHireList),
+          _isDuplicate: !checkDnh(row, doNotHireList) && checkDuplicate(row, candidates),
+        }))
+        setParsed(annotated)
+        setChecked(annotated.map(() => true))
+      } catch {
+        setError(isFR ? 'Erreur de lecture du fichier.' : 'Error reading file.')
+        setFile(null)
+      }
+    }
+    reader.readAsText(f)
+  }
+
+  const handleToggleAll = () => setChecked(checked.map(() => !checked.every(Boolean)))
+  const handleToggleRow = (i) => { const n = [...checked]; n[i] = !n[i]; setChecked(n) }
+
+  const handleImport = () => {
+    if (!parsed) return
+    const today = new Date().toISOString().slice(0, 10)
+    let count = 0
+    parsed.forEach((row, i) => {
+      if (!checked[i]) return
+      const { _isDnh, _isDuplicate, ...candidate } = row
+      addCandidate({ ...candidate, source: 'Calendly', status: 'Pending', interviewDate: today, isDNH: _isDnh })
+      count++
+    })
+    addToast(
+      isFR ? `${count} candidat(e)s Calendly importé(e)s.` : `${count} Calendly candidate${count !== 1 ? 's' : ''} imported.`,
+      'success'
+    )
+    onClose()
+  }
+
+  const checkedCount = checked.filter(Boolean).length
+
+  return (
+    <div style={{ padding: '0 0 24px' }}>
+      <div style={{ background: '#EEF2FF', border: '1px solid #C7D2FE', borderRadius: 8, padding: '10px 14px', marginBottom: 20, fontSize: '0.78rem', color: '#3730A3', lineHeight: 1.5 }}>
+        {isFR
+          ? 'Importez directement l\'export CSV de Calendly. Les candidat(e)s sont créé(e)s avec le statut "En attente" — complétez leurs informations lors des entretiens.'
+          : 'Import directly from your Calendly CSV export. Candidates are created as "Pending" — fill in remaining details during interviews.'}
+      </div>
+
+      <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', color: '#374151', marginBottom: 8 }}>
+        {isFR ? 'Sélectionner le fichier Calendly (.csv)' : 'Select Calendly file (.csv)'}
+      </label>
+
+      <div
+        onClick={() => fileRef.current?.click()}
+        style={{
+          border: '2px dashed #D1D5DB', borderRadius: 10, padding: '28px 20px',
+          textAlign: 'center', cursor: 'pointer',
+          background: file ? '#F0FDF4' : '#F9FAFB',
+          borderColor: file ? '#6EE7B7' : '#D1D5DB',
+          transition: 'all 0.15s', marginBottom: 16,
+        }}
+      >
+        <div style={{ fontSize: '2rem', marginBottom: 8 }}>📅</div>
+        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#374151' }}>
+          {file ? file.name : (isFR ? 'Cliquer pour choisir un fichier CSV' : 'Click to choose a CSV file')}
+        </div>
+        <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginTop: 4 }}>
+          {isFR ? 'Export Calendly (.csv)' : 'Calendly export (.csv)'}
+        </div>
+        <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={handleFileChange} style={{ display: 'none' }} />
+      </div>
+
+      {error && <div style={{ color: '#DC2626', fontSize: '0.8rem', marginBottom: 12 }}>{error}</div>}
+
+      {parsed && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#111827' }}>
+              {isFR ? `Aperçu — ${parsed.length} candidat(e)${parsed.length !== 1 ? 's' : ''}` : `Preview — ${parsed.length} candidate${parsed.length !== 1 ? 's' : ''}`}
+            </div>
+            <button onClick={handleToggleAll} style={{ background: 'none', border: '1px solid #D1D5DB', borderRadius: 6, padding: '3px 10px', fontSize: '0.72rem', cursor: 'pointer', color: '#374151' }}>
+              {checked.every(Boolean) ? (isFR ? 'Tout désélectionner' : 'Deselect all') : (isFR ? 'Tout sélectionner' : 'Select all')}
+            </button>
+          </div>
+
+          <div style={{ overflowX: 'auto', borderRadius: 8, border: '1px solid #E5E7EB', marginBottom: 12 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
+              <thead>
+                <tr style={{ background: '#F9FAFB' }}>
+                  <th style={{ padding: '8px 10px', textAlign: 'center', borderBottom: '1px solid #E5E7EB', width: 32 }}>
+                    <input type="checkbox" checked={checked.every(Boolean)} onChange={handleToggleAll} />
+                  </th>
+                  {[isFR ? 'Nom' : 'Name', isFR ? 'Téléphone' : 'Phone', 'Email', isFR ? 'Ville' : 'City', isFR ? 'Date départ' : 'Start Date', isFR ? 'Résultat' : 'Result'].map(h => (
+                    <th key={h} style={thS}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {parsed.map((row, i) => (
+                  <tr key={i} style={{ background: !checked[i] ? '#F9FAFB' : row._isDnh ? '#FFF0F5' : row._isDuplicate ? '#FFFBEB' : '#fff', opacity: checked[i] ? 1 : 0.5 }}>
+                    <td style={{ padding: '8px 10px', textAlign: 'center', borderBottom: '1px solid #F3F4F6' }}>
+                      <input type="checkbox" checked={!!checked[i]} onChange={() => handleToggleRow(i)} />
+                    </td>
+                    <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', whiteSpace: 'nowrap', fontWeight: 600, color: '#111827' }}>
+                      {row.firstName} {row.lastName}
+                    </td>
+                    <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', color: '#374151' }}>{row.phone || '—'}</td>
+                    <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', color: '#374151', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.email || '—'}</td>
+                    <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', color: '#374151' }}>{row.calendlyCity || '—'}</td>
+                    <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', color: '#374151' }}>{row.calendlyStartDate || '—'}</td>
+                    <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center' }}>
+                      <span style={statusStyle(row)}>{statusLabel(row)}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ display: 'flex', gap: 16, marginBottom: 20, fontSize: '0.7rem', color: '#6B7280' }}>
+            <span><span style={{ background: '#D1FAE5', color: '#065F46', padding: '1px 6px', borderRadius: 8, fontWeight: 600 }}>OK</span> {isFR ? 'Prêt à importer' : 'Ready to import'}</span>
+            <span><span style={{ background: '#FEF3C7', color: '#92400E', padding: '1px 6px', borderRadius: 8, fontWeight: 600 }}>{isFR ? 'Doublon' : 'Duplicate'}</span> {isFR ? 'Déjà dans le système' : 'Already exists'}</span>
+            <span><span style={{ background: '#FFD6E0', color: '#991B1B', padding: '1px 6px', borderRadius: 8, fontWeight: 600 }}>DNH</span> {isFR ? 'Ne pas embaucher' : 'Do Not Hire'}</span>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button onClick={onClose} style={{ background: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 8, padding: '9px 18px', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', color: '#374151' }}>
+              {isFR ? 'Annuler' : 'Cancel'}
+            </button>
+            <button
+              onClick={handleImport}
+              disabled={checkedCount === 0}
+              style={{
+                background: checkedCount === 0 ? '#E5E7EB' : '#F0194A',
+                color: checkedCount === 0 ? '#9CA3AF' : '#fff',
+                border: 'none', borderRadius: 8, padding: '9px 20px',
+                fontWeight: 700, fontSize: '0.83rem',
+                cursor: checkedCount === 0 ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {isFR ? `Importer ${checkedCount} candidat(e)${checkedCount !== 1 ? 's' : ''}` : `Import ${checkedCount} candidate${checkedCount !== 1 ? 's' : ''}`}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function ImportModal({ onClose }) {
   const language = useStore(s => s.language)
   const candidates = useStore(s => s.candidates)
@@ -410,6 +653,7 @@ export default function ImportModal({ onClose }) {
         <div style={{ display: 'flex', borderBottom: '1px solid #E5E7EB', flexShrink: 0 }}>
           {[
             { key: 'csv', label: isFR ? 'Import CSV / Coller' : 'CSV / Paste Import' },
+            { key: 'calendly', label: 'Calendly' },
             { key: 'historical', label: isFR ? 'Données historiques' : 'Historical Data' },
           ].map(tab => (
             <button
@@ -434,6 +678,10 @@ export default function ImportModal({ onClose }) {
 
           {activeTab === 'historical' && (
             <HistoricalImportTab language={language} onClose={onClose} />
+          )}
+
+          {activeTab === 'calendly' && (
+            <CalendlyImportTab language={language} onClose={onClose} />
           )}
 
           {activeTab === 'csv' && <>

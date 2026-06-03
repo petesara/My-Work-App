@@ -77,13 +77,20 @@ export default function Pipeline() {
   const setOpenAddPanel = useStore((s) => s.setOpenAddPanel)
   const editingCandidateId = useStore((s) => s.editingCandidateId)
 
+  const REGION_COLORS = { all: '#64748B', SON: '#1E2769', QC: '#8B5CF6', BC: '#059669', EAST: '#F59E0B', PHONES: '#2DCDB8' }
+
+  const handleRegionChange = (r) => {
+    setFilterRegion(r)
+    localStorage.setItem('pipeline_region', r)
+  }
+
   const [loading, setLoading] = useState(true)
   const [showImport, setShowImport] = useState(false)
   const [showHistorical, setShowHistorical] = useState(false)
   const [tab, setTab] = useState('all') // 'all' | 'new' | 'rehire'
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
-  const [filterRegion, setFilterRegion] = useState('all')
+  const [filterRegion, setFilterRegion] = useState(() => localStorage.getItem('pipeline_region') || 'all')
   const [filterLang, setFilterLang] = useState('all')
   const [filterOffice, setFilterOffice] = useState('')
   const [dateFrom, setDateFrom] = useState('')
@@ -258,6 +265,45 @@ export default function Pipeline() {
         ))}
       </div>
 
+      {/* Region tabs */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+        {[{ key: 'all', label: language === 'FR' ? 'Toutes' : 'All' }, ...REGIONS.map(r => ({ key: r, label: r }))].map(({ key, label }) => {
+          const color = REGION_COLORS[key]
+          const active = filterRegion === key
+          return (
+            <button
+              key={key}
+              onClick={() => handleRegionChange(key)}
+              style={{
+                padding: '7px 18px',
+                fontSize: '0.8rem',
+                fontWeight: active ? 700 : 500,
+                borderRadius: 20,
+                border: `2px solid ${active ? color : '#E8EAF6'}`,
+                background: active ? color : 'white',
+                color: active ? '#fff' : color === '#F59E0B' ? '#92400E' : color,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                boxShadow: active ? `0 2px 8px ${color}40` : 'none',
+                letterSpacing: key !== 'all' ? '0.05em' : 0,
+              }}
+            >
+              {label}
+              {key !== 'all' && (
+                <span style={{
+                  marginLeft: 6, fontSize: '0.68rem',
+                  background: active ? 'rgba(255,255,255,0.25)' : '#F3F4F6',
+                  color: active ? '#fff' : '#6B7280',
+                  borderRadius: 10, padding: '1px 5px', fontWeight: 600,
+                }}>
+                  {displayBase.filter(c => c.region === key).length}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
       {/* Filters */}
       <div style={{
         background: 'white',
@@ -282,10 +328,6 @@ export default function Pipeline() {
           <option value="all">{t('all', language)} {t('status', language)}</option>
           {STATUSES.map((s) => <option key={s} value={s}>{t(s, language)}</option>)}
         </FocusSelect>
-        <FocusSelect value={filterRegion} onChange={(e) => setFilterRegion(e.target.value)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #E8EAF6', fontSize: '0.8rem', background: 'white', cursor: 'pointer' }}>
-          <option value="all">{t('all', language)} {t('region', language)}</option>
-          {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
-        </FocusSelect>
         <FocusSelect value={filterLang} onChange={(e) => setFilterLang(e.target.value)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #E8EAF6', fontSize: '0.8rem', background: 'white', cursor: 'pointer' }}>
           <option value="all">EN + FR</option>
           <option value="EN">EN</option>
@@ -295,7 +337,7 @@ export default function Pipeline() {
         <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>→</span>
         <FocusInput type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={{ padding: '5px 8px', borderRadius: 8, border: '1px solid #E8EAF6', fontSize: '0.75rem' }} />
         {(search || filterStatus !== 'all' || filterRegion !== 'all' || filterLang !== 'all' || filterOffice || dateFrom || dateTo) && (
-          <button onClick={() => { setSearch(''); setFilterStatus('all'); setFilterRegion('all'); setFilterLang('all'); setFilterOffice(''); setDateFrom(''); setDateTo('') }}
+          <button onClick={() => { setSearch(''); setFilterStatus('all'); handleRegionChange('all'); setFilterLang('all'); setFilterOffice(''); setDateFrom(''); setDateTo('') }}
             style={{ padding: '5px 10px', fontSize: '0.75rem', borderRadius: 6, border: '1px solid #E8EAF6', background: 'white', color: '#64748B', cursor: 'pointer' }}>
             ✕ Clear
           </button>

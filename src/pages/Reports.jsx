@@ -921,6 +921,62 @@ function RecruitmentReport({ candidates, dateFrom, dateTo, filterRegion, filterO
           </>
         )
       })()}
+
+      {/* ── Calendly Screening Responses ── */}
+      {(() => {
+        const calendlyCandidates = filtered.filter(c => c.source === 'Calendly' && (c.calendlyCity || c.calendlyFundraisingBg || c.calendlyConnecting || c.calendlyStartDate))
+        if (calendlyCandidates.length === 0) return null
+        const withCity = calendlyCandidates.filter(c => c.calendlyCity)
+        const withAccommodations = calendlyCandidates.filter(c => c.calendlyAccommodations && !/^no$/i.test(c.calendlyAccommodations.trim()))
+        const cityGroups = {}
+        withCity.forEach(c => { const city = c.calendlyCity.trim(); cityGroups[city] = (cityGroups[city] || 0) + 1 })
+        const topCities = Object.entries(cityGroups).sort((a, b) => b[1] - a[1]).slice(0, 6)
+        return (
+          <>
+            <SectionDivider title={FR ? 'Données de présélection Calendly' : 'Calendly Screening Data'} color="#6366F1" />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14, marginBottom: 20 }}>
+              <StatCard
+                label={FR ? 'Via Calendly' : 'Via Calendly'}
+                value={calendlyCandidates.length}
+                sub={`${pct(calendlyCandidates.length, total)}% ${FR ? 'du total' : 'of total'}`}
+                accent="#6366F1"
+              />
+              <StatCard
+                label={FR ? 'Embauchés (Calendly)' : 'Hired (Calendly)'}
+                value={calendlyCandidates.filter(c => c.status === 'Hired').length}
+                sub={`${pct(calendlyCandidates.filter(c => c.status === 'Hired').length, calendlyCandidates.filter(c => c.status !== 'No Show' && c.status !== 'Pending').length)}% ${FR ? 'taux' : 'hire rate'}`}
+                accent="#059669"
+              />
+              {withAccommodations.length > 0 && (
+                <StatCard
+                  label={FR ? 'Accommodations requises' : 'Accommodations Needed'}
+                  value={withAccommodations.length}
+                  sub={`${pct(withAccommodations.length, calendlyCandidates.length)}%`}
+                  accent="#F59E0B"
+                />
+              )}
+            </div>
+            {topCities.length > 0 && (
+              <TableCard title={FR ? 'Villes d\'origine (Calendly)' : 'Candidate Cities (Calendly)'}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead><tr>
+                    {[FR ? 'Ville' : 'City', FR ? 'Candidat(e)s' : 'Candidates', '%'].map((h, i) => <th key={h} style={TH(i > 0)}>{h}</th>)}
+                  </tr></thead>
+                  <tbody>
+                    {topCities.map(([city, count]) => (
+                      <tr key={city} onMouseEnter={e => e.currentTarget.style.background = '#FAFAFA'} onMouseLeave={e => e.currentTarget.style.background = ''}>
+                        <td style={{ ...TD(true, '#1E2769'), paddingLeft: 20 }}>{city}</td>
+                        <td style={TD(false, '#374151', true)}>{count}</td>
+                        <td style={TD(false, '#6B7280', true)}>{pct(count, withCity.length)}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableCard>
+            )}
+          </>
+        )
+      })()}
     </div>
   )
 }
