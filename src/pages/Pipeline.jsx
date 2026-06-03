@@ -151,6 +151,9 @@ export default function Pipeline() {
   const interviewed = activeOnly.filter(c => c.status !== 'Pending').length
   const hireRate = Math.round(hired / Math.max(interviewed, 1) * 100)
 
+  const regionCounts = displayBase.reduce((acc, c) => { if (c.region) acc[c.region] = (acc[c.region] || 0) + 1; return acc }, {})
+  const visibleOffices = OFFICES.filter(o => filterRegion === 'all' || o.region === filterRegion)
+
   const kpiCards = [
     { label: language === 'FR' ? 'Actifs' : 'Total Active', value: totalActive, dot: '#2DCDB8' },
     { label: language === 'FR' ? 'Embauchés' : 'Hired', value: hired, dot: '#F0194A' },
@@ -297,7 +300,7 @@ export default function Pipeline() {
                   color: active ? '#fff' : '#6B7280',
                   borderRadius: 10, padding: '1px 5px', fontWeight: 600,
                 }}>
-                  {displayBase.filter(c => c.region === key).length}
+                  {regionCounts[key] ?? 0}
                 </span>
               )}
             </button>
@@ -306,45 +309,41 @@ export default function Pipeline() {
       </div>
 
       {/* Office code multi-select */}
-      {(() => {
-        const visibleOffices = OFFICES.filter(o => filterRegion === 'all' || o.region === filterRegion)
-        if (visibleOffices.length === 0) return null
-        return (
-          <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginRight: 4 }}>
-              {language === 'FR' ? 'Bureaux' : 'Offices'}
-            </span>
-            {visibleOffices.map(o => {
-              const active = filterOffices.includes(o.code)
-              return (
-                <button
-                  key={o.code}
-                  onClick={() => setFilterOffices(prev =>
-                    prev.includes(o.code) ? prev.filter(c => c !== o.code) : [...prev, o.code]
-                  )}
-                  style={{
-                    padding: '4px 12px', fontSize: '0.73rem', fontWeight: active ? 700 : 400,
-                    borderRadius: 12, border: `1.5px solid ${active ? '#1E2769' : '#E8EAF6'}`,
-                    background: active ? '#1E2769' : 'white',
-                    color: active ? '#fff' : '#374151',
-                    cursor: 'pointer', transition: 'all 0.12s',
-                  }}
-                >
-                  {o.code}
-                </button>
-              )
-            })}
-            {filterOffices.length > 0 && (
+      {visibleOffices.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginRight: 4 }}>
+            {language === 'FR' ? 'Bureaux' : 'Offices'}
+          </span>
+          {visibleOffices.map(o => {
+            const active = filterOffices.includes(o.code)
+            return (
               <button
-                onClick={() => setFilterOffices([])}
-                style={{ padding: '4px 8px', fontSize: '0.7rem', borderRadius: 10, border: '1px solid #E8EAF6', background: 'white', color: '#9CA3AF', cursor: 'pointer' }}
+                key={o.code}
+                onClick={() => setFilterOffices(prev =>
+                  prev.includes(o.code) ? prev.filter(c => c !== o.code) : [...prev, o.code]
+                )}
+                style={{
+                  padding: '4px 12px', fontSize: '0.73rem', fontWeight: active ? 700 : 400,
+                  borderRadius: 12, border: `1.5px solid ${active ? '#1E2769' : '#E8EAF6'}`,
+                  background: active ? '#1E2769' : 'white',
+                  color: active ? '#fff' : '#374151',
+                  cursor: 'pointer', transition: 'all 0.12s',
+                }}
               >
-                ✕ {language === 'FR' ? 'Effacer' : 'Clear'}
+                {o.code}
               </button>
-            )}
-          </div>
-        )
-      })()}
+            )
+          })}
+          {filterOffices.length > 0 && (
+            <button
+              onClick={() => setFilterOffices([])}
+              style={{ padding: '4px 8px', fontSize: '0.7rem', borderRadius: 10, border: '1px solid #E8EAF6', background: 'white', color: '#9CA3AF', cursor: 'pointer' }}
+            >
+              ✕ {language === 'FR' ? 'Effacer' : 'Clear'}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Filters */}
       <div style={{

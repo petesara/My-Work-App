@@ -251,6 +251,23 @@ function checkDuplicate(row, candidates) {
   })
 }
 
+// ── Shared row status helpers ─────────────────────────────────────────────────
+function rowStatusLabel(row, language) {
+  if (row._isDnh) return 'DNH'
+  if (row._isDuplicate) return language === 'FR' ? 'Doublon' : 'Duplicate'
+  return 'OK'
+}
+const ROW_STATUS_STYLE = {
+  dnh:       { background: '#FFD6E0', color: '#991B1B', padding: '2px 8px', borderRadius: 10, fontSize: '0.7rem', fontWeight: 700 },
+  duplicate: { background: '#FEF3C7', color: '#92400E', padding: '2px 8px', borderRadius: 10, fontSize: '0.7rem', fontWeight: 700 },
+  ok:        { background: '#D1FAE5', color: '#065F46', padding: '2px 8px', borderRadius: 10, fontSize: '0.7rem', fontWeight: 700 },
+}
+function rowStatusStyle(row) {
+  if (row._isDnh) return ROW_STATUS_STYLE.dnh
+  if (row._isDuplicate) return ROW_STATUS_STYLE.duplicate
+  return ROW_STATUS_STYLE.ok
+}
+
 // ── Calendly CSV parser ────────────────────────────────────────────────────────
 function parseCalendlyCSV(text) {
   const rows = []
@@ -303,17 +320,6 @@ function CalendlyImportTab({ language, onClose }) {
 
   const thS = { padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid #E5E7EB', fontWeight: 600, color: '#6B7280', whiteSpace: 'nowrap' }
 
-  const statusLabel = (row) => {
-    if (row._isDnh) return 'DNH'
-    if (row._isDuplicate) return isFR ? 'Doublon' : 'Duplicate'
-    return 'OK'
-  }
-  const statusStyle = (row) => {
-    if (row._isDnh) return { background: '#FFD6E0', color: '#991B1B', padding: '2px 8px', borderRadius: 10, fontSize: '0.7rem', fontWeight: 700 }
-    if (row._isDuplicate) return { background: '#FEF3C7', color: '#92400E', padding: '2px 8px', borderRadius: 10, fontSize: '0.7rem', fontWeight: 700 }
-    return { background: '#D1FAE5', color: '#065F46', padding: '2px 8px', borderRadius: 10, fontSize: '0.7rem', fontWeight: 700 }
-  }
-
   const handleFileChange = (e) => {
     const f = e.target.files[0]
     if (!f) return
@@ -348,11 +354,10 @@ function CalendlyImportTab({ language, onClose }) {
           result.push(row)
         }
         if (!result.length) { setError(isFR ? 'Aucune ligne valide.' : 'No valid rows found.'); setFile(null); return }
-        const annotated = result.map(row => ({
-          ...row,
-          _isDnh: checkDnh(row, doNotHireList),
-          _isDuplicate: !checkDnh(row, doNotHireList) && checkDuplicate(row, candidates),
-        }))
+        const annotated = result.map(row => {
+          const isDnh = checkDnh(row, doNotHireList)
+          return { ...row, _isDnh: isDnh, _isDuplicate: !isDnh && checkDuplicate(row, candidates) }
+        })
         setParsed(annotated)
         setChecked(annotated.map(() => true))
       } catch {
@@ -363,7 +368,8 @@ function CalendlyImportTab({ language, onClose }) {
     reader.readAsText(f)
   }
 
-  const handleToggleAll = () => setChecked(checked.map(() => !checked.every(Boolean)))
+  const allChecked = checked.every(Boolean)
+  const handleToggleAll = () => setChecked(checked.map(() => !allChecked))
   const handleToggleRow = (i) => { const n = [...checked]; n[i] = !n[i]; setChecked(n) }
 
   const handleImport = () => {
@@ -426,7 +432,7 @@ function CalendlyImportTab({ language, onClose }) {
               {isFR ? `Aperçu — ${parsed.length} candidat(e)${parsed.length !== 1 ? 's' : ''}` : `Preview — ${parsed.length} candidate${parsed.length !== 1 ? 's' : ''}`}
             </div>
             <button onClick={handleToggleAll} style={{ background: 'none', border: '1px solid #D1D5DB', borderRadius: 6, padding: '3px 10px', fontSize: '0.72rem', cursor: 'pointer', color: '#374151' }}>
-              {checked.every(Boolean) ? (isFR ? 'Tout désélectionner' : 'Deselect all') : (isFR ? 'Tout sélectionner' : 'Select all')}
+              {allChecked ? (isFR ? 'Tout désélectionner' : 'Deselect all') : (isFR ? 'Tout sélectionner' : 'Select all')}
             </button>
           </div>
 
@@ -435,7 +441,7 @@ function CalendlyImportTab({ language, onClose }) {
               <thead>
                 <tr style={{ background: '#F9FAFB' }}>
                   <th style={{ padding: '8px 10px', textAlign: 'center', borderBottom: '1px solid #E5E7EB', width: 32 }}>
-                    <input type="checkbox" checked={checked.every(Boolean)} onChange={handleToggleAll} />
+                    <input type="checkbox" checked={allChecked} onChange={handleToggleAll} />
                   </th>
                   {[isFR ? 'Nom' : 'Name', isFR ? 'Téléphone' : 'Phone', 'Email', isFR ? 'Ville' : 'City', isFR ? 'Date départ' : 'Start Date', isFR ? 'Résultat' : 'Result'].map(h => (
                     <th key={h} style={thS}>{h}</th>
@@ -456,7 +462,7 @@ function CalendlyImportTab({ language, onClose }) {
                     <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', color: '#374151' }}>{row.calendlyCity || '—'}</td>
                     <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', color: '#374151' }}>{row.calendlyStartDate || '—'}</td>
                     <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center' }}>
-                      <span style={statusStyle(row)}>{statusLabel(row)}</span>
+                      <span style={rowStatusStyle(row)}>{rowStatusLabel(row, language)}</span>
                     </td>
                   </tr>
                 ))}
@@ -587,18 +593,6 @@ export default function ImportModal({ onClose }) {
   }
 
   const checkedCount = checked.filter(Boolean).length
-
-  const rowStatusLabel = (row) => {
-    if (row._isDnh) return 'DNH'
-    if (row._isDuplicate) return isFR ? 'Doublon' : 'Duplicate'
-    return 'OK'
-  }
-
-  const rowStatusStyle = (row) => {
-    if (row._isDnh) return { background: '#FFD6E0', color: '#991B1B', padding: '2px 8px', borderRadius: 10, fontSize: '0.7rem', fontWeight: 700 }
-    if (row._isDuplicate) return { background: '#FEF3C7', color: '#92400E', padding: '2px 8px', borderRadius: 10, fontSize: '0.7rem', fontWeight: 700 }
-    return { background: '#D1FAE5', color: '#065F46', padding: '2px 8px', borderRadius: 10, fontSize: '0.7rem', fontWeight: 700 }
-  }
 
   return (
     <>
@@ -853,7 +847,7 @@ export default function ImportModal({ onClose }) {
                           {row.status || 'Pending'}
                         </td>
                         <td style={{ padding: '8px 10px', borderBottom: '1px solid #F3F4F6', textAlign: 'center' }}>
-                          <span style={rowStatusStyle(row)}>{rowStatusLabel(row)}</span>
+                          <span style={rowStatusStyle(row)}>{rowStatusLabel(row, language)}</span>
                         </td>
                       </tr>
                     ))}

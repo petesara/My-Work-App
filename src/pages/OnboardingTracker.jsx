@@ -58,7 +58,7 @@ function OnboardingRow({ candidate, language, role, selected, onToggleSelect, is
   const isOps = role === 'operations'
   const isRecruitment = role === 'recruitment'
   const isAdmin = role === 'admin'
-  const isReadOnly_eff = isReadOnly || false
+  const readOnly = isOps || isRecruitment || Boolean(isReadOnly)
 
   const ob = candidate.onboarding || {
     userCreated: false,
@@ -83,7 +83,7 @@ function OnboardingRow({ candidate, language, role, selected, onToggleSelect, is
   ]
 
   const update = (path, value) => {
-    if (isReadOnly_eff) return
+    if (readOnly) return
     let newOb = { ...ob }
     if (path.startsWith('missingDocs.')) {
       const key = path.split('.')[1]
@@ -156,7 +156,7 @@ function OnboardingRow({ candidate, language, role, selected, onToggleSelect, is
       {/* Summary row */}
       <div style={{ display: 'flex', alignItems: 'center' }}>
         {/* Checkbox column */}
-        {!isReadOnly_eff && (
+        {!readOnly && (
           <div style={{ padding: '12px 8px 12px 14px', flexShrink: 0 }}>
             <input
               type="checkbox"
@@ -311,21 +311,21 @@ function OnboardingRow({ candidate, language, role, selected, onToggleSelect, is
                 <input
                   type="date"
                   value={ob.adpSentDate || ''}
-                  disabled={!candidate.payrollId || isOps || isRecruitment || isReadOnly_eff || isReadOnly_eff}
+                  disabled={!candidate.payrollId || readOnly}
                   onChange={(e) => update('adpSentDate', e.target.value)}
-                  style={dateInpStyle(!candidate.payrollId || isOps || isRecruitment || isReadOnly_eff || isReadOnly_eff)}
+                  style={dateInpStyle(!candidate.payrollId || readOnly)}
                 />
               </div>
               <div style={{ marginBottom: 8 }}>
                 <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#374151', marginBottom: 6 }}>{t('missingDocs', language)}:</div>
                 {['directDeposit', 'sin', 'govId', 'contract', 'workPermit'].map((doc) => (
-                  <label key={doc} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, cursor: (isOps || isRecruitment || isReadOnly_eff || isReadOnly_eff) ? 'not-allowed' : 'pointer' }}>
+                  <label key={doc} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, cursor: (readOnly) ? 'not-allowed' : 'pointer' }}>
                     <input
                       type="checkbox"
                       checked={ob.missingDocs?.[doc] || false}
-                      disabled={isOps || isRecruitment || isReadOnly_eff || isReadOnly_eff}
+                      disabled={readOnly}
                       onChange={(e) => update(`missingDocs.${doc}`, e.target.checked)}
-                      style={{ ...checkboxStyle(isOps || isRecruitment || isReadOnly_eff || isReadOnly_eff), accentColor: '#F59E0B' }}
+                      style={{ ...checkboxStyle(readOnly), accentColor: '#F59E0B' }}
                     />
                     <span style={{ fontSize: '0.78rem', color: ob.missingDocs?.[doc] ? '#92400E' : '#64748B' }}>
                       {t(doc, language)}
@@ -333,13 +333,13 @@ function OnboardingRow({ candidate, language, role, selected, onToggleSelect, is
                   </label>
                 ))}
               </div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: (isOps || isRecruitment || isReadOnly_eff) ? 'not-allowed' : 'pointer', marginTop: 6 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: (readOnly) ? 'not-allowed' : 'pointer', marginTop: 6 }}>
                 <input
                   type="checkbox"
                   checked={ob.missingDocsEmailSent || false}
-                  disabled={isOps || isRecruitment || isReadOnly_eff}
+                  disabled={readOnly}
                   onChange={(e) => update('missingDocsEmailSent', e.target.checked)}
-                  style={checkboxStyle(isOps || isRecruitment || isReadOnly_eff)}
+                  style={checkboxStyle(readOnly)}
                 />
                 <span style={{ fontSize: '0.78rem', color: '#374151' }}>{t('missingDocsEmailSent', language)}</span>
               </label>
@@ -369,31 +369,31 @@ function OnboardingRow({ candidate, language, role, selected, onToggleSelect, is
                 <input
                   type="date"
                   value={ob.adpCompleteDate || ''}
-                  disabled={isOps || isRecruitment || isReadOnly_eff}
+                  disabled={readOnly}
                   onChange={(e) => update('adpCompleteDate', e.target.value)}
-                  style={dateInpStyle(isOps || isRecruitment || isReadOnly_eff)}
+                  style={dateInpStyle(readOnly)}
                 />
               </div>
               {isHSF && (
                 <div style={{ marginTop: 8 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: (isOps || isRecruitment || isReadOnly_eff) ? 'not-allowed' : 'pointer', marginBottom: 6 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: (readOnly) ? 'not-allowed' : 'pointer', marginBottom: 6 }}>
                     <input
                       type="checkbox"
                       checked={ob.hsfAccountNeeded || false}
-                      disabled={isOps || isRecruitment || isReadOnly_eff}
+                      disabled={readOnly}
                       onChange={(e) => update('hsfAccountNeeded', e.target.checked)}
-                      style={checkboxStyle(isOps || isRecruitment || isReadOnly_eff)}
+                      style={checkboxStyle(readOnly)}
                     />
                     <span style={{ fontSize: '0.78rem', color: '#374151', fontWeight: 500 }}>{t('hsfAccountNeeded', language)}</span>
                   </label>
                   {ob.hsfAccountNeeded && (
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: (isOps || isRecruitment || isReadOnly_eff) ? 'not-allowed' : 'pointer', marginLeft: 20 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: (readOnly) ? 'not-allowed' : 'pointer', marginLeft: 20 }}>
                       <input
                         type="checkbox"
                         checked={ob.hsfItRequestSent || false}
-                        disabled={isOps || isRecruitment || isReadOnly_eff}
+                        disabled={readOnly}
                         onChange={(e) => update('hsfItRequestSent', e.target.checked)}
-                        style={checkboxStyle(isOps || isRecruitment || isReadOnly_eff)}
+                        style={checkboxStyle(readOnly)}
                       />
                       <span style={{ fontSize: '0.78rem', color: '#374151' }}>{t('hsfItRequestSent', language)}</span>
                     </label>
@@ -419,7 +419,7 @@ function OnboardingRow({ candidate, language, role, selected, onToggleSelect, is
               )}
               <label style={{
                 display: 'flex', alignItems: 'center', gap: 14,
-                cursor: (isOps || isRecruitment || isReadOnly_eff) ? 'not-allowed' : 'pointer',
+                cursor: (readOnly) ? 'not-allowed' : 'pointer',
                 padding: '10px 14px',
                 background: ob.podActivatedDate ? '#E6FAF8' : '#F8F9FF',
                 borderRadius: 8,
@@ -429,12 +429,12 @@ function OnboardingRow({ candidate, language, role, selected, onToggleSelect, is
                 <input
                   type="checkbox"
                   checked={!!ob.podActivatedDate}
-                  disabled={isOps || isRecruitment || isReadOnly_eff}
+                  disabled={readOnly}
                   onChange={(e) => handlePodToggle(e.target.checked)}
                   style={{
                     width: 20, height: 20,
                     accentColor: '#2DCDB8',
-                    cursor: (isOps || isRecruitment || isReadOnly_eff) ? 'not-allowed' : 'pointer',
+                    cursor: (readOnly) ? 'not-allowed' : 'pointer',
                     flexShrink: 0,
                   }}
                 />
